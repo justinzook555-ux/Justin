@@ -415,6 +415,26 @@
     margin-top: 4px;
   }
 
+  /* ---- In-quote add-on divider (e.g. overhang within a combined quote) ---- */
+  .addon-divider {
+    margin: 18px 18px 0;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line-strong);
+  }
+  .addon-divider .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rust);
+  }
+  .addon-divider .title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 19px;
+    margin-top: 2px;
+  }
+
   /* ---- Overhang toggles (4 options) ---- */
   .overhang-toggle {
     display: grid;
@@ -540,7 +560,7 @@
         <div class="field">
           <label for="lengthFt">Building Length (ft)</label>
           <input type="number" id="lengthFt" min="0" step="1" placeholder="e.g. 28" />
-          <div class="hint">Only changes the rate from Atglen, PA &mdash; 30&prime; and under is half load, 31&prime;&ndash;42&prime; is three-quarter load, 43&prime;+ is full load.</div>
+          <div class="hint">From Atglen, PA this sets the load rate (30&prime; and under is half load, 31&prime;&ndash;42&prime; is three-quarter load, 43&prime;+ is full load). If an overhang is added below, this same length also looks up its price (12&prime;&ndash;60&prime;, in 2&prime; steps).</div>
         </div>
 
         <div class="field checkline">
@@ -548,12 +568,28 @@
           <label for="forceLI" style="margin:0; text-transform:none; letter-spacing:0; font-family: var(--font-body); font-size: 13.5px; color: var(--ink);">This delivery is Long Island, NY (force $750 Atglen drop fee)</label>
         </div>
 
+        <div class="field checkline">
+          <input type="checkbox" id="addOverhang" />
+          <label for="addOverhang" style="margin:0; text-transform:none; letter-spacing:0; font-family: var(--font-body); font-size: 13.5px; color: var(--ink);">Add an overhang to this quote</label>
+        </div>
+
+        <div class="field field-fade collapsed" id="overhangField">
+          <label>Overhang Size</label>
+          <div class="overhang-toggle" id="ohSizeToggle">
+            <button type="button" data-size="4">4&prime;</button>
+            <button type="button" data-size="8">8&prime;</button>
+            <button type="button" data-size="10">10&prime;</button>
+            <button type="button" data-size="12">12&prime;</button>
+          </div>
+          <div class="hint">Uses the Building Width above for 4&prime; Fixed vs. Hinged, and the Building Length above to look up the price (12&prime;&ndash;60&prime; barns, in 2&prime; steps). A 40 mi mileage buffer and each shop&rsquo;s own overhang rules apply automatically.</div>
+        </div>
+
         <details class="advanced">
           <summary>Advanced &mdash; mileage &amp; buffer overrides</summary>
           <div class="field">
             <label for="manualMiles">Manual one-way mileage (optional)</label>
             <input type="number" id="manualMiles" min="0" step="1" placeholder="Leave blank to auto-estimate from ZIP codes" />
-            <div class="hint">Overrides the ZIP-based estimate below with an exact number, e.g. from a mapping tool. The location's mile buffer is still added on top.</div>
+            <div class="hint">Overrides the ZIP-based estimate below with an exact number, e.g. from a mapping tool. The location's mile buffer is still added on top. For an overhang shipped out of Greenwood, mileage is always estimated separately from Mooresville, NC and does not use this override.</div>
           </div>
           <div class="field">
             <label for="circuity">Road-circuity multiplier</label>
@@ -563,7 +599,7 @@
         </details>
 
         <div style="margin-top:18px;">
-          <button class="btn-primary" id="calcBtn">Calculate Shipping</button>
+          <button class="btn-primary" id="calcBtn">Calculate Quote</button>
         </div>
 
         <div class="error-box" id="errorBox" style="display:none;"></div>
@@ -576,7 +612,7 @@
       <div id="resultsHost">
         <div class="quote-empty">
           <div class="glyph">&#128665;</div>
-          Pick a location, enter a ZIP code and building size,<br>then calculate to see the delivery quote.
+          Pick a location, enter a ZIP code and building size,<br>then calculate to see the delivery quote. Add an overhang below for a combined total.
         </div>
       </div>
     </section>
@@ -623,95 +659,6 @@
     </div>
   </section>
 
-  <footer class="foot">
-    Mileage is estimated from ZIP-code coordinates (great-circle distance &times; road-circuity multiplier), not a live routing API &mdash; use the manual mileage field for an exact quote.
-  </footer>
-
-  <div class="section-divider">
-    <div class="plate-eyebrow">Shed Row &amp; Run-In Overhangs</div>
-    <h1>Overhang Cost Calculator</h1>
-    <div class="sub">8&prime;, 10&prime;, and 12&prime; overhangs include roof upgrades (taller front wall, 2&times;6 rafters on 16&Prime; centers &mdash; may vary per local snow load).</div>
-  </div>
-
-  <div class="workspace">
-
-    <!-- OVERHANG FORM PANEL -->
-    <section class="panel">
-      <div class="panel-head"><h2>Build an Overhang Quote</h2></div>
-      <div class="panel-body">
-
-        <div class="field">
-          <label for="ohLength">Length of Barn (ft)</label>
-          <select id="ohLength"></select>
-        </div>
-
-        <div class="field">
-          <label>Overhang Size</label>
-          <div class="overhang-toggle" id="ohSizeToggle">
-            <button type="button" data-size="4">4&prime;</button>
-            <button type="button" data-size="8">8&prime;</button>
-            <button type="button" data-size="10">10&prime;</button>
-            <button type="button" data-size="12">12&prime;</button>
-          </div>
-        </div>
-
-        <div class="field field-fade" id="ohWidthField">
-          <label>Barn Width (decides 4&prime; Fixed vs. Hinged)</label>
-          <div class="width-toggle-2" id="ohWidthToggle">
-            <button type="button" data-w="10">10&prime;</button>
-            <button type="button" data-w="12">12&prime;</button>
-            <button type="button" data-w="14">14&prime;</button>
-          </div>
-          <div class="hint">10&prime; barns are always 4&prime; Fixed. Every other width is 4&prime; Hinged.</div>
-        </div>
-
-        <div class="field">
-          <label for="ohOrigin">Shop Building This Overhang</label>
-          <select id="ohOrigin"></select>
-          <div class="hint" id="ohOriginHint">&nbsp;</div>
-        </div>
-
-        <div class="field">
-          <label for="ohDestZip">Destination ZIP Code</label>
-          <input type="text" id="ohDestZip" inputmode="numeric" maxlength="5" placeholder="e.g. 21201" />
-          <div class="hint" id="ohDestHint">&nbsp;</div>
-        </div>
-
-        <details class="advanced">
-          <summary>Advanced &mdash; mileage &amp; buffer overrides</summary>
-          <div class="field">
-            <label for="ohManualMiles">Manual one-way mileage (optional)</label>
-            <input type="number" id="ohManualMiles" min="0" step="1" placeholder="Leave blank to auto-estimate from ZIP codes" />
-            <div class="hint">Overrides the ZIP-based estimate with an exact number, e.g. from a mapping tool.</div>
-          </div>
-          <div class="field">
-            <label for="ohCircuity">Road-circuity multiplier</label>
-            <input type="number" id="ohCircuity" min="1" step="0.01" value="1.25" />
-            <div class="hint">Converts straight-line ZIP-to-ZIP distance into an estimated driving distance.</div>
-          </div>
-        </details>
-
-        <div style="margin-top:18px;">
-          <button class="btn-primary" id="ohCalcBtn">Calculate Overhang</button>
-        </div>
-
-        <div class="error-box" id="ohErrorBox" style="display:none;"></div>
-      </div>
-    </section>
-
-    <!-- OVERHANG RESULTS PANEL -->
-    <section class="panel">
-      <div class="panel-head"><h2>Overhang Quote</h2></div>
-      <div id="ohResultsHost">
-        <div class="quote-empty">
-          <div class="glyph">&#127958;&#65039;</div>
-          Pick a barn length and overhang size,<br>then calculate to see the overhang quote.
-        </div>
-      </div>
-    </section>
-
-  </div>
-
   <details class="advanced" style="margin-top: 22px; border-top: 2px solid var(--line-strong); padding-top: 16px;">
     <summary>Show full overhang price table &amp; rules</summary>
     <section class="ratesheet">
@@ -735,6 +682,10 @@
       </div>
     </section>
   </details>
+
+  <footer class="foot">
+    Mileage is estimated from ZIP-code coordinates (great-circle distance &times; road-circuity multiplier), not a live routing API &mdash; use the manual mileage field for an exact quote. The same estimate method is used for an added overhang's mileage.
+  </footer>
 
 </div>
 
@@ -890,11 +841,20 @@
     html += '</div>';
 
     html += '<div class="ledger">';
-    html += '<div class="ledger-row total"><span class="label">Total</span><span class="val">' + money(data.total) + '</span></div>';
+    html += '<div class="ledger-row' + (data.overhang ? '' : ' total') + '"><span class="label">' + (data.overhang ? "Shipping subtotal" : "Total") + '</span><span class="val">' + money(data.total) + '</span></div>';
     html += '</div>';
 
     if (data.note) {
       html += '<div class="note-strip">' + data.note + '</div>';
+    }
+
+    if (data.overhang) {
+      html += '<div class="addon-divider"><div class="eyebrow">Add-on</div><div class="title">Overhang</div></div>';
+      html += ohRenderFragment(data.overhang);
+
+      html += '<div class="ledger">';
+      html += '<div class="ledger-row total"><span class="label">Grand Total</span><span class="val">' + money(data.total + data.overhang.total) + '</span></div>';
+      html += '</div>';
     }
 
     host.innerHTML = html;
@@ -970,6 +930,12 @@
 
     var total = mileageCost + dropFee;
 
+    var overhangData = null;
+    if (addOverhangCheckbox.checked) {
+      overhangData = buildOverhangData(origin, destZip, destRec, manualMiles, circuity);
+      if (overhangData === null) return; // buildOverhangData already called showError
+    }
+
     renderResults({
       originName: origin.name,
       destLabel: destRec ? (destRec[3] + ", " + destRec[2] + " " + destZip) : (destZip + " (manual mileage)"),
@@ -988,7 +954,8 @@
       total: total,
       tierLabel: tierLabel,
       longIsland: longIsland,
-      note: note
+      note: note,
+      overhang: overhangData
     });
   });
 
@@ -997,7 +964,7 @@
   });
 
   // =====================================================================
-  // Overhang calculator
+  // Overhang add-on
   // Source: Shed Row Overhang Pricing sheet, revised 07/24/2025
   // =====================================================================
 
@@ -1041,17 +1008,7 @@
     o12: "12′ Overhang (7′ Clearance)"
   };
 
-  // populate length select
-  var ohLengthSel = document.getElementById("ohLength");
-  OH_LENGTHS.forEach(function (len) {
-    var opt = document.createElement("option");
-    opt.value = len;
-    opt.textContent = len + " ft";
-    if (len === 30) opt.selected = true;
-    ohLengthSel.appendChild(opt);
-  });
-
-  // populate full price table
+  // populate full reference price table
   var ohTableBody = document.querySelector("#ohPriceTable tbody");
   OH_LENGTHS.forEach(function (len) {
     var tr = document.createElement("tr");
@@ -1080,82 +1037,108 @@
     return ORIGINS.filter(function (o) { return o.id === originId; })[0];
   }
 
-  var ohOriginSel = document.getElementById("ohOrigin");
-  ORIGINS.forEach(function (o) {
-    var opt = document.createElement("option");
-    opt.value = o.id;
-    opt.textContent = o.name;
-    ohOriginSel.appendChild(opt);
-  });
-
-  function ohUpdateOriginHint() {
-    var mileOrigin = ohMileageOrigin(ohOriginSel.value);
-    var hint = document.getElementById("ohOriginHint");
-    hint.textContent = "Mileage billed from " + mileOrigin.name + " (ZIP " + mileOrigin.zip + ")" +
-      (ohOriginSel.value === "greenwood" ? " — built from Mooresville, not Greenwood. Includes the $" + OH_OUT_OF_SHOP_FEE + " out-of-shop fee automatically." : ".");
-  }
-  ohOriginSel.addEventListener("change", ohUpdateOriginHint);
-  ohUpdateOriginHint();
-
-  document.getElementById("ohDestZip").addEventListener("input", function (e) {
-    e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 5);
-    var hint = document.getElementById("ohDestHint");
-    if (e.target.value.length === 5) {
-      var rec = ZIP_DATA[e.target.value];
-      hint.textContent = rec ? (rec[3] + ", " + rec[2] + " (" + rec[4] + " County)") : "ZIP not found — enter manual mileage below, or double-check the ZIP.";
-    } else {
-      hint.innerHTML = "&nbsp;";
-    }
+  var addOverhangCheckbox = document.getElementById("addOverhang");
+  var overhangField = document.getElementById("overhangField");
+  addOverhangCheckbox.addEventListener("change", function () {
+    overhangField.classList.toggle("collapsed", !addOverhangCheckbox.checked);
   });
 
   var ohSize = "4";
-  var ohWidth = 10;
-
   var ohSizeBtns = document.querySelectorAll("#ohSizeToggle button");
   ohSizeBtns.forEach(function (btn) {
     if (btn.dataset.size === ohSize) btn.classList.add("active");
     btn.addEventListener("click", function () {
       ohSize = btn.dataset.size;
       ohSizeBtns.forEach(function (b) { b.classList.toggle("active", b === btn); });
-      document.getElementById("ohWidthField").classList.toggle("collapsed", ohSize !== "4");
-    });
-  });
-  document.getElementById("ohWidthField").classList.toggle("collapsed", ohSize !== "4");
-
-  var ohWidthBtns = document.querySelectorAll("#ohWidthToggle button");
-  ohWidthBtns.forEach(function (btn) {
-    if (parseInt(btn.dataset.w, 10) === ohWidth) btn.classList.add("active");
-    btn.addEventListener("click", function () {
-      ohWidth = parseInt(btn.dataset.w, 10);
-      ohWidthBtns.forEach(function (b) { b.classList.toggle("active", b === btn); });
     });
   });
 
-  function ohShowError(msg) {
-    var box = document.getElementById("ohErrorBox");
-    box.textContent = msg;
-    box.style.display = "block";
-  }
-  function ohClearError() {
-    var box = document.getElementById("ohErrorBox");
-    box.style.display = "none";
-    box.textContent = "";
+  // Builds the overhang add-on's data, or shows an error and returns null.
+  // Shares the main quote's origin/destination/manual-mileage/circuity —
+  // except out of Greenwood, SC, where overhang mileage always comes from
+  // Mooresville, NC instead, and is always auto-estimated from the ZIP.
+  function buildOverhangData(origin, destZip, destRec, manualMiles, circuity) {
+    var length = parseInt(document.getElementById("lengthFt").value, 10);
+
+    var priceKey, mileRate, label, note;
+    if (ohSize === "4") {
+      if (selectedWidth === 10) {
+        priceKey = "fixed4";
+        mileRate = 0;
+      } else {
+        priceKey = "hinged4";
+        mileRate = 12;
+      }
+    } else {
+      priceKey = "o" + ohSize;
+      mileRate = 14;
+    }
+    label = OH_LABELS[priceKey];
+
+    if (isNaN(length) || !OH_PRICES[priceKey].hasOwnProperty(length)) {
+      showError("Enter a Building Length between 12 and 60 ft (in 2 ft steps) to price the overhang add-on.");
+      return null;
+    }
+
+    var basePrice = OH_PRICES[priceKey][length];
+    if (basePrice == null) {
+      showError(label + " is not offered at " + length + " ft (N/A on the price sheet) — call the shop for this length, or remove the overhang add-on.");
+      return null;
+    }
+
+    var mileOrigin = ohMileageOrigin(origin.id);
+    var outOfShop = origin.id === "greenwood";
+
+    var straightLine, drivingMiles, usedManual;
+    if (!outOfShop) {
+      straightLine = destRec ? haversineMiles(mileOrigin.lat, mileOrigin.lon, destRec[0], destRec[1]) : 0;
+      drivingMiles = manualMiles !== null ? manualMiles : straightLine * circuity;
+      usedManual = manualMiles !== null;
+    } else {
+      if (!destRec) {
+        showError("That destination ZIP wasn't found in the lookup table, so overhang mileage from Mooresville, NC can't be auto-estimated. Use a ZIP in the lookup table, or remove the overhang add-on.");
+        return null;
+      }
+      straightLine = haversineMiles(mileOrigin.lat, mileOrigin.lon, destRec[0], destRec[1]);
+      drivingMiles = straightLine * circuity;
+      usedManual = false;
+    }
+
+    var billedMiles = drivingMiles + OH_BUFFER;
+    var mileageCost = mileRate * billedMiles;
+    var total = basePrice + mileageCost + (outOfShop ? OH_OUT_OF_SHOP_FEE : 0);
+
+    if (priceKey === "fixed4") {
+      note = "4′ Fixed is a flat installed price on the sheet — no per-mile crew charge applies.";
+    }
+
+    return {
+      length: length,
+      label: label,
+      basePrice: basePrice,
+      mileRate: mileRate,
+      mileOriginName: mileOrigin.name,
+      straightLine: straightLine,
+      circuity: circuity,
+      drivingMiles: drivingMiles,
+      buffer: OH_BUFFER,
+      billedMiles: billedMiles,
+      usedManual: usedManual,
+      mileageCost: mileageCost,
+      outOfShop: outOfShop,
+      total: total,
+      note: note
+    };
   }
 
-  function ohRenderResults(data) {
-    var host = document.getElementById("ohResultsHost");
+  function ohRenderFragment(data) {
     var html = "";
 
-    html += '<div class="route-line">';
-    html += '<div class="route-node"><div class="k">Mileage From</div><div class="v">' + data.mileOriginName + '</div></div>';
-    html += '<div class="route-arrow">&#8594;</div>';
-    html += '<div class="route-node"><div class="k">To</div><div class="v">' + data.destLabel + '</div></div>';
-    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Built out of Mooresville (+$" + OH_OUT_OF_SHOP_FEE + ")" : "Billed from shop") + '</span>';
-    html += '</div>';
-    html += '<div class="route-line" style="border-top:none; padding-top:0;">';
-    html += '<div class="route-node"><div class="k">Barn Length</div><div class="v">' + data.length + ' ft</div></div>';
+    html += '<div class="route-line" style="margin-top: 4px;">';
+    html += '<div class="route-node"><div class="k">Overhang Mileage From</div><div class="v">' + data.mileOriginName + '</div></div>';
     html += '<div class="route-arrow">&#8226;</div>';
     html += '<div class="route-node"><div class="k">Overhang</div><div class="v">' + data.label + '</div></div>';
+    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Built out of Mooresville (+$" + OH_OUT_OF_SHOP_FEE + ")" : "Billed from shop") + '</span>';
     html += '</div>';
 
     html += '<div class="ledger">';
@@ -1175,99 +1158,15 @@
     if (data.outOfShop) {
       html += ledgerRow("Out-of-shop surcharge (Mooresville)", money(OH_OUT_OF_SHOP_FEE), true);
     }
-    html += '</div>';
-
-    html += '<div class="ledger">';
-    html += '<div class="ledger-row total"><span class="label">Total</span><span class="val">' + money(data.total) + '</span></div>';
+    html += ledgerRow("Overhang subtotal", money(data.total), false);
     html += '</div>';
 
     if (data.note) {
       html += '<div class="note-strip">' + data.note + '</div>';
     }
 
-    host.innerHTML = html;
+    return html;
   }
-
-  document.getElementById("ohCalcBtn").addEventListener("click", function () {
-    ohClearError();
-
-    var length = parseInt(ohLengthSel.value, 10);
-    var destZip = document.getElementById("ohDestZip").value.trim();
-    var manualMilesRaw = document.getElementById("ohManualMiles").value;
-    var manualMiles = manualMilesRaw !== "" ? parseFloat(manualMilesRaw) : null;
-    var circuity = parseFloat(document.getElementById("ohCircuity").value) || 1.25;
-    var outOfShop = ohOriginSel.value === "greenwood";
-
-    var mileOrigin = ohMileageOrigin(ohOriginSel.value);
-
-    if (destZip.length !== 5) {
-      ohShowError("Enter a 5-digit destination ZIP code.");
-      return;
-    }
-    var destRec = ZIP_DATA[destZip];
-    if (!destRec && manualMiles === null) {
-      ohShowError("That ZIP code wasn't found in the lookup table. Enter a manual mileage in Advanced to continue anyway.");
-      return;
-    }
-    if (manualMiles !== null && (isNaN(manualMiles) || manualMiles < 0)) {
-      ohShowError("Manual mileage must be a positive number.");
-      return;
-    }
-
-    var straightLine = destRec ? haversineMiles(mileOrigin.lat, mileOrigin.lon, destRec[0], destRec[1]) : 0;
-    var drivingMiles = manualMiles !== null ? manualMiles : straightLine * circuity;
-    var usedManual = manualMiles !== null;
-    var billedMiles = drivingMiles + OH_BUFFER;
-
-    var priceKey, mileRate, label, note;
-
-    if (ohSize === "4") {
-      if (ohWidth === 10) {
-        priceKey = "fixed4";
-        mileRate = 0;
-      } else {
-        priceKey = "hinged4";
-        mileRate = 12;
-      }
-    } else {
-      priceKey = "o" + ohSize;
-      mileRate = 14;
-    }
-
-    var basePrice = OH_PRICES[priceKey][length];
-    label = OH_LABELS[priceKey];
-
-    if (basePrice == null) {
-      ohShowError(label + " is not offered at " + length + " ft (N/A on the price sheet) — call the shop for this length.");
-      return;
-    }
-
-    var mileageCost = mileRate * billedMiles;
-    var total = basePrice + mileageCost + (outOfShop ? OH_OUT_OF_SHOP_FEE : 0);
-
-    if (priceKey === "fixed4" && billedMiles > 0) {
-      note = "4′ Fixed is a flat installed price on the sheet — no per-mile crew charge applies.";
-    }
-
-    ohRenderResults({
-      length: length,
-      label: label,
-      basePrice: basePrice,
-      mileRate: mileRate,
-      mileOriginName: mileOrigin.name,
-      destLabel: destRec ? (destRec[3] + ", " + destRec[2] + " " + destZip) : (destZip + " (manual mileage)"),
-      straightLine: straightLine,
-      circuity: circuity,
-      drivingMiles: drivingMiles,
-      buffer: OH_BUFFER,
-      billedMiles: billedMiles,
-      usedManual: usedManual,
-      mileageCost: mileageCost,
-      outOfShop: outOfShop,
-      total: total,
-      note: note
-    });
-  });
 
 })();
 </script>

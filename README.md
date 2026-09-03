@@ -1,12 +1,9 @@
 # Shipping & Overhang Cost Calculator
 
-A single self-contained HTML page (`index.html`) with two tools:
-
-1. A shipping calculator that quotes delivery cost for portable buildings
-   from five dispatch locations, by destination ZIP code, building width,
-   and building length.
-2. An overhang calculator, at the bottom of the page, that prices shed row
-   / run-in overhangs by barn length and overhang size.
+A single self-contained HTML page (`index.html`) that quotes delivery cost
+for portable buildings from five dispatch locations, by destination ZIP
+code, building width, and building length — with an optional overhang
+add-on priced and totaled in the same quote.
 
 Open `index.html` directly in any browser — no build step, no server, no
 external services required at runtime.
@@ -76,10 +73,24 @@ Suffolk County, NY) with a manual override checkbox for edge cases.
   in the table will prompt for manual mileage entry instead of blocking the
   quote.
 
-## Overhang calculator
+## Overhang add-on
+
+A single **"Add an overhang to this quote"** checkbox on the main form
+reveals an Overhang Size picker (4′ / 8′ / 10′ / 12′). It reuses the same
+form fields as the shipping quote — no separate shop, ZIP, or length
+fields:
+
+- **Building Width** (already selected above) decides 4′ Fixed vs. 4′
+  Hinged: a 10′-wide barn always gets 4′ Fixed; every other width gets 4′
+  Hinged.
+- **Building Length** (already entered above) looks up the overhang's
+  price. It must be 12′–60′ in 2′ steps to match the price sheet — the
+  calculator shows an error and won't quote the add-on otherwise.
+- **Ship From** and **Destination ZIP** (already selected above) set the
+  route, with one exception: see Greenwood, SC below.
 
 Prices pulled from the "Shed Row Overhang Pricing" sheet (revised
-07/24/2025), for barn lengths 12′–60′ in 2′ steps.
+07/24/2025).
 
 **Overhang types and per-mile add-ons:**
 
@@ -91,8 +102,6 @@ Prices pulled from the "Shed Row Overhang Pricing" sheet (revised
 | 10′ Overhang (7′ clearance) | installed, includes roof upgrades | +$14/mile (onsite labor) |
 | 12′ Overhang (7′ clearance) | installed, includes roof upgrades | +$14/mile (onsite labor) |
 
-- **4′ Fixed vs. 4′ Hinged is automatic**: a 10′-wide barn always gets 4′
-  Fixed; every other barn width gets 4′ Hinged.
 - **4′ Hinged is not offered at 50′ barn length and over** (N/A on the
   sheet) — the calculator blocks the quote and says to call the shop.
 - 8′/10′/12′ overhangs on 50′–60′ barns include forklift onsite (already
@@ -101,22 +110,23 @@ Prices pulled from the "Shed Row Overhang Pricing" sheet (revised
   2×6 rafters on 16″ centers — may vary by local snow load).
 - The sheet's **"overhangs out of Corral Shop"** surcharge (**+$500**
   flat) is applied automatically, not as a checkbox — see below.
-- The full price table and these rules are reproduced under the calculator,
+- The full price table and these rules are reproduced below the quote form,
   collapsed by default behind a "Show full overhang price table & rules"
   toggle.
 
-`total = (estimated driving miles + 40 mi buffer) × per-mile rate + $500 out-of-shop fee (if applicable)`
+`overhang total = (billed miles × per-mile rate) + base price + $500 out-of-shop fee (if applicable)`
+`grand total = shipping total + overhang total`
 
-**Mileage is ZIP-based, like the shipping calculator**: pick which shop is
-building the overhang and type the destination ZIP code — driving distance
-is estimated the same way (great-circle distance × road-circuity
-multiplier, with a manual override available), plus a flat **40-mile
-buffer** added before the per-mile rate is applied. The mileage *origin*
-point depends on the shop:
+**Overhang mileage — shared with the shipping leg, except out of
+Greenwood, SC**:
 
-- **Greenwood, SC** builds its overhangs out of **Mooresville, NC (28115)**,
-  so mileage is measured from there instead of Greenwood, and the **$500
-  out-of-shop fee is added automatically** for every Greenwood quote (no
-  checkbox — it's just part of shipping out of South Carolina).
-- **Clarkson KY, Atglen PA, Powell WY, and Mill Hall PA** each bill mileage
-  from their own location directly, with no out-of-shop fee.
+- **Clarkson KY, Atglen PA, Powell WY, and Mill Hall PA**: the overhang
+  travels with the same trip as the building, so it reuses the exact same
+  distance (and manual mileage override, if entered) as the shipping quote
+  above, plus its own **40-mile buffer** and per-mile rate.
+- **Greenwood, SC** builds its overhangs out of **Mooresville, NC
+  (28115)** instead, so overhang mileage is always auto-estimated from
+  there — the shipping leg's manual mileage override does not apply to it
+  — and the **$500 out-of-shop fee is added automatically** (no checkbox).
+  If the destination ZIP isn't in the lookup table, the overhang add-on
+  can't be priced this way and the calculator shows an error.
