@@ -29,13 +29,19 @@ external services required at runtime.
 - $500 flat drop fee
 
 **Atglen tier** — rate depends on building length (load size):
-- **Under 30′ long (half load)**: $5/mile (10′-wide), $6/mile (12′-wide), $7/mile (14′-wide)
-- **31′–42′ long (three-quarter load)**: $7/mile (10′-wide), $8.50/mile (12′-wide), $10/mile (14′-wide)
-- **30′ exactly, or 43′ and over (full load)**: same per-mile rates as the Standard tier ($10/$12/$14)
+- **30′ and under (half load)**: $5/mile (10′-wide), $6/mile (12′-wide), $7/mile (14′-wide)
+- **31′–42′ (three-quarter load)**: $7/mile (10′-wide), $8.50/mile (12′-wide), $10/mile (14′-wide)
+- **43′ and over (full load)**: same per-mile rates as the Standard tier ($10/$12/$14)
 - +50 mile buffer added to the estimated distance (all length classes)
 - $250 flat drop fee — **$750** if the destination is Long Island, NY (Nassau or Suffolk County)
 
-`total = (estimated driving miles + buffer) × per-mile rate + drop fee`
+`total = max(rate × billed miles, minimum mileage cost) + drop fee`
+
+**Minimum mileage cost** (a floor for short-haul deliveries): if the
+calculated mileage cost falls below this amount, the minimum is billed
+instead — the drop fee is still added on top as normal.
+- **$750** for Greenwood SC, Clarkson KY, Powell WY, and Mill Hall PA
+- **$250** for Atglen, PA
 
 ## Distance estimate
 
@@ -61,9 +67,11 @@ Suffolk County, NY) with a manual override checkbox for edge cases.
 - The Atglen $250/$750 drop fee is flat regardless of building length; only
   the per-mile rate changes across the half / three-quarter / full load
   length brackets.
-- 30′ exactly falls into the full-load bracket, not the three-quarter one —
-  the three-quarter bracket is 31′–42′ specifically, matching how it was
-  requested.
+- 30′ exactly falls into the half-load bracket (30′ and under); the
+  three-quarter bracket is 31′–42′, and full load starts at 43′.
+- The minimum mileage cost applies to the *mileage cost* line only (rate ×
+  billed miles), not the total — the drop fee (and Long Island surcharge)
+  is always added on top after the minimum is applied.
 - ZIP-to-coordinate data covers ~42,000 US ZIP codes; a destination ZIP not
   in the table will prompt for manual mileage entry instead of blocking the
   quote.

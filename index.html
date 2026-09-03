@@ -540,7 +540,7 @@
         <div class="field">
           <label for="lengthFt">Building Length (ft)</label>
           <input type="number" id="lengthFt" min="0" step="1" placeholder="e.g. 28" />
-          <div class="hint">Only changes the rate from Atglen, PA &mdash; under 30&prime; is half load, 31&prime;&ndash;42&prime; is three-quarter load, everything else is full load.</div>
+          <div class="hint">Only changes the rate from Atglen, PA &mdash; 30&prime; and under is half load, 31&prime;&ndash;42&prime; is three-quarter load, 43&prime;+ is full load.</div>
         </div>
 
         <div class="field checkline">
@@ -594,7 +594,7 @@
         <div class="row"><span class="label">Drop fee</span><span>$500</span></div>
       </div>
       <div class="rate-card">
-        <h3>Atglen, PA &mdash; under 30&prime; long (half load)</h3>
+        <h3>Atglen, PA &mdash; 30&prime; and under (half load)</h3>
         <div class="row"><span class="label">10&prime; wide</span><span>$5 / mile</span></div>
         <div class="row"><span class="label">12&prime; wide</span><span>$6 / mile</span></div>
         <div class="row"><span class="label">14&prime; wide</span><span>$7 / mile</span></div>
@@ -610,13 +610,16 @@
         <div class="row"><span class="label">Drop fee</span><span>$250 ($750 to Long Island, NY)</span></div>
       </div>
       <div class="rate-card">
-        <h3>Atglen, PA &mdash; 30&prime; or 43&prime;+ (full load)</h3>
+        <h3>Atglen, PA &mdash; 43&prime;+ (full load)</h3>
         <div class="row"><span class="label">10&prime; wide</span><span>$10 / mile</span></div>
         <div class="row"><span class="label">12&prime; wide</span><span>$12 / mile</span></div>
         <div class="row"><span class="label">14&prime; wide</span><span>$14 / mile</span></div>
         <div class="row"><span class="label">Mile buffer</span><span>+50 mi</span></div>
         <div class="row"><span class="label">Drop fee</span><span>$250 ($750 to Long Island, NY)</span></div>
       </div>
+    </div>
+    <div class="note-strip" style="margin: 12px 2px 0;">
+      Minimum mileage cost: $750 for Greenwood SC, Clarkson KY, Powell WY, and Mill Hall PA; $250 for Atglen, PA. If the calculated mileage cost (rate &times; billed miles) falls below that floor, the minimum is billed instead &mdash; the drop fee is still added on top as normal.
     </div>
   </section>
 
@@ -759,9 +762,10 @@
   var ATGLEN_BUFFER = 50;
   var ATGLEN_DROP = 250;
   var ATGLEN_DROP_LI = 750;
-  var ATGLEN_HALF_LOAD_MAX = 30;   // under this length: half load
-  var ATGLEN_THREE_QUARTER_MIN = 31;
-  var ATGLEN_THREE_QUARTER_MAX = 42; // 31'-42' inclusive: three-quarter load
+  var ATGLEN_HALF_LOAD_MAX = 30;      // this length and under: half load
+  var ATGLEN_THREE_QUARTER_MAX = 42;  // above half-load max, up to this: three-quarter load
+  var MIN_MILEAGE_COST_STANDARD = 750;
+  var MIN_MILEAGE_COST_ATGLEN = 250;
 
   ORIGINS.forEach(function (o) {
     var rec = ZIP_DATA[o.zip];
@@ -873,6 +877,9 @@
     html += ledgerRow("Location buffer", "+ " + miles(data.buffer), true);
     html += ledgerRow("Billed miles", miles(data.billedMiles), false);
     html += ledgerRow("Rate for " + data.width + "′ wide", money(data.rate) + " / mile", false);
+    if (data.minApplied) {
+      html += ledgerRow("Minimum mileage cost applied", money(data.minMileageCost), true);
+    }
     html += ledgerRow("Mileage cost", money(data.mileageCost), false);
     html += ledgerRow("Drop fee" + (data.longIsland ? " (Long Island, NY)" : ""), money(data.dropFee), false);
     html += '</div>';
@@ -927,15 +934,15 @@
       buffer = ATGLEN_BUFFER;
       longIsland = forceLI || isLongIsland(destRec);
       dropFee = longIsland ? ATGLEN_DROP_LI : ATGLEN_DROP;
-      if (!isNaN(lengthFt) && lengthFt > 0 && lengthFt < ATGLEN_HALF_LOAD_MAX) {
+      if (!isNaN(lengthFt) && lengthFt > 0 && lengthFt <= ATGLEN_HALF_LOAD_MAX) {
         rateTable = ATGLEN_HALF_LOAD_RATE;
-        tierLabel = "Under 30′ · half load";
-      } else if (!isNaN(lengthFt) && lengthFt >= ATGLEN_THREE_QUARTER_MIN && lengthFt <= ATGLEN_THREE_QUARTER_MAX) {
+        tierLabel = "30′ and under · half load";
+      } else if (!isNaN(lengthFt) && lengthFt > ATGLEN_HALF_LOAD_MAX && lengthFt <= ATGLEN_THREE_QUARTER_MAX) {
         rateTable = ATGLEN_THREE_QUARTER_LOAD_RATE;
         tierLabel = "31′–42′ · three-quarter load";
       } else {
         rateTable = ATGLEN_FULL_LOAD_RATE;
-        tierLabel = "Full load rate";
+        tierLabel = "43′+ · full load rate";
       }
       if (isNaN(lengthFt) || lengthFt <= 0) {
         note = "Enter the building length to confirm the half / three-quarter / full load rate — currently priced at the full-load rate by default.";
@@ -951,6 +958,11 @@
     var rate = rateTable[selectedWidth];
     var billedMiles = drivingMiles + buffer;
     var mileageCost = rate * billedMiles;
+
+    var minMileageCost = origin.tier === "atglen" ? MIN_MILEAGE_COST_ATGLEN : MIN_MILEAGE_COST_STANDARD;
+    var minApplied = mileageCost < minMileageCost;
+    if (minApplied) mileageCost = minMileageCost;
+
     var total = mileageCost + dropFee;
 
     renderResults({
@@ -965,6 +977,8 @@
       width: selectedWidth,
       rate: rate,
       mileageCost: mileageCost,
+      minApplied: minApplied,
+      minMileageCost: minMileageCost,
       dropFee: dropFee,
       total: total,
       tierLabel: tierLabel,
