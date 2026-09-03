@@ -25,7 +25,7 @@ external services required at runtime.
 - $500 flat drop fee
 
 **Atglen tier**:
-- Buildings **under 30′ long**: $5/mile (10′-wide), $12/mile (12′-wide), $14/mile (14′-wide)
+- Buildings **under 30′ long**: $5/mile (10′-wide), $6/mile (12′-wide), $7/mile (14′-wide)
 - Buildings **30′ and over**: same per-mile rates as the Standard tier ($10/$12/$14)
 - +50 mile buffer added to the estimated distance (both length classes)
 - $250 flat drop fee — **$750** if the destination is Long Island, NY (Nassau or Suffolk County)
