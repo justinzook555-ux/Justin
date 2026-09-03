@@ -398,6 +398,99 @@
     text-align: center;
   }
 
+  /* ---- Section divider ---- */
+  .section-divider {
+    margin: 40px 0 18px;
+    padding-top: 22px;
+    border-top: 2px solid var(--line-strong);
+  }
+  .section-divider .plate-eyebrow { color: var(--rust); }
+  .section-divider h1 {
+    color: var(--ink);
+    font-size: 30px;
+  }
+  .section-divider .sub {
+    font-size: 13.5px;
+    color: var(--ink-dim);
+    margin-top: 4px;
+  }
+
+  /* ---- Overhang toggles (4 options) ---- */
+  .overhang-toggle {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .overhang-toggle button, .width-toggle-2 button {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+    padding: 10px 0;
+    border-radius: 7px;
+    border: 1px solid var(--line-strong);
+    background: var(--panel-2);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .overhang-toggle button.active, .width-toggle-2 button.active {
+    background: var(--rust);
+    color: var(--rust-ink);
+    border-color: var(--rust);
+  }
+  .width-toggle-2 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .field-fade {
+    max-height: 300px;
+    overflow: hidden;
+    transition: max-height 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
+  }
+  .field-fade.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin: 0 !important;
+  }
+
+  /* ---- Full data table ---- */
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+  }
+  table.pricetable {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 640px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+  table.pricetable th, table.pricetable td {
+    padding: 8px 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  table.pricetable th:first-child, table.pricetable td:first-child {
+    text-align: left;
+    font-family: var(--font-body);
+    color: var(--ink-dim);
+  }
+  table.pricetable thead th {
+    font-family: var(--font-body);
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--panel-2);
+    position: sticky;
+    top: 0;
+  }
+  table.pricetable tbody tr:nth-child(even) { background: var(--panel-2); }
+  table.pricetable td.na { color: var(--ink-dim); font-style: italic; }
+
   @media (prefers-reduced-motion: no-preference) {
     .panel, .rate-card { transition: box-shadow 0.15s ease; }
   }
@@ -522,6 +615,97 @@
   <footer class="foot">
     Mileage is estimated from ZIP-code coordinates (great-circle distance &times; road-circuity multiplier), not a live routing API &mdash; use the manual mileage field for an exact quote.
   </footer>
+
+  <div class="section-divider">
+    <div class="plate-eyebrow">Shed Row &amp; Run-In Overhangs</div>
+    <h1>Overhang Cost Calculator</h1>
+    <div class="sub">8&prime;, 10&prime;, and 12&prime; overhangs include roof upgrades (taller front wall, 2&times;6 rafters on 16&Prime; centers &mdash; may vary per local snow load).</div>
+  </div>
+
+  <div class="workspace">
+
+    <!-- OVERHANG FORM PANEL -->
+    <section class="panel">
+      <div class="panel-head"><h2>Build an Overhang Quote</h2></div>
+      <div class="panel-body">
+
+        <div class="field">
+          <label for="ohLength">Length of Barn (ft)</label>
+          <select id="ohLength"></select>
+        </div>
+
+        <div class="field">
+          <label>Overhang Size</label>
+          <div class="overhang-toggle" id="ohSizeToggle">
+            <button type="button" data-size="4">4&prime;</button>
+            <button type="button" data-size="8">8&prime;</button>
+            <button type="button" data-size="10">10&prime;</button>
+            <button type="button" data-size="12">12&prime;</button>
+          </div>
+        </div>
+
+        <div class="field field-fade" id="ohWidthField">
+          <label>Barn Width (decides 4&prime; Fixed vs. Hinged)</label>
+          <div class="width-toggle-2" id="ohWidthToggle">
+            <button type="button" data-w="10">10&prime;</button>
+            <button type="button" data-w="12">12&prime;</button>
+            <button type="button" data-w="14">14&prime;</button>
+          </div>
+          <div class="hint">10&prime; barns are always 4&prime; Fixed. Every other width is 4&prime; Hinged.</div>
+        </div>
+
+        <div class="field">
+          <label for="ohMiles">Crew / Onsite-Labor Miles (one-way)</label>
+          <input type="number" id="ohMiles" min="0" step="1" placeholder="e.g. 45" />
+          <div class="hint" id="ohMileHint">&nbsp;</div>
+        </div>
+
+        <div class="field checkline">
+          <input type="checkbox" id="ohOutOfShop" />
+          <label for="ohOutOfShop" style="margin:0; text-transform:none; letter-spacing:0; font-family: var(--font-body); font-size: 13.5px; color: var(--ink);">Standalone overhang added out of the Corral Shop (+$500, billed from Wytheville)</label>
+        </div>
+
+        <div style="margin-top:18px;">
+          <button class="btn-primary" id="ohCalcBtn">Calculate Overhang</button>
+        </div>
+
+        <div class="error-box" id="ohErrorBox" style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- OVERHANG RESULTS PANEL -->
+    <section class="panel">
+      <div class="panel-head"><h2>Overhang Quote</h2></div>
+      <div id="ohResultsHost">
+        <div class="quote-empty">
+          <div class="glyph">&#127958;&#65039;</div>
+          Pick a barn length and overhang size,<br>then calculate to see the overhang quote.
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <section class="ratesheet">
+    <div class="table-scroll" style="margin-top: 14px;">
+      <table class="pricetable" id="ohPriceTable">
+        <thead>
+          <tr>
+            <th>Length of Barn</th>
+            <th>4&prime; Fixed</th>
+            <th>4&prime; Hinged (+$12/mi crew)</th>
+            <th>8&prime; Overhang (+$14/mi)</th>
+            <th>10&prime; Overhang (+$14/mi)</th>
+            <th>12&prime; Overhang (+$14/mi)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="note-strip" style="margin: 12px 2px 0;">
+      Prices are installed and, for 50&prime;&ndash;60&prime; barns, include forklift onsite. 4&prime; Hinged is not offered at 50&prime; and over (N/A) &mdash; call the shop for those lengths. Table source: Shed Row Overhang Pricing, revised 07/24/2025.
+    </div>
+  </section>
 
 </div>
 
@@ -760,6 +944,194 @@
   document.getElementById("destZip").addEventListener("keydown", function (e) {
     if (e.key === "Enter") document.getElementById("calcBtn").click();
   });
+
+  // =====================================================================
+  // Overhang calculator
+  // Source: Shed Row Overhang Pricing sheet, revised 07/24/2025
+  // =====================================================================
+
+  var OH_LENGTHS = [12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60];
+
+  var OH_PRICES = {
+    fixed4: {
+      12:1260,14:1470,16:1600,18:1710,20:1800,22:1870,24:2040,26:2210,28:2380,30:2550,
+      32:2720,34:2890,36:3060,38:3230,40:3400,42:3570,44:3740,46:3910,48:4080,
+      50:4250,52:4420,54:4590,56:4760,58:4930,60:5100
+    },
+    hinged4: {
+      12:2590,14:2830,16:3070,18:3310,20:3550,22:3790,24:4030,26:4270,28:4510,30:4750,
+      32:4990,34:5230,36:5470,38:5710,40:5950,42:6190,44:6430,46:6670,48:6910,
+      50:null,52:null,54:null,56:null,58:null,60:null
+    },
+    o8: {
+      12:4470,14:4770,16:5325,18:5480,20:5795,22:6260,24:6575,26:7945,28:8670,30:9390,
+      32:10540,34:11265,36:11990,38:13140,40:13725,42:14895,44:15495,46:16080,48:16670,
+      50:18840,52:19170,54:19520,56:19875,58:20235,60:20620
+    },
+    o10: {
+      12:4780,14:5105,16:5725,18:5890,20:6240,22:6750,24:7475,26:8500,28:9255,30:10010,
+      32:11190,34:11950,36:12710,38:13890,40:14505,42:15705,44:16340,46:16960,48:17585,
+      50:19785,52:20150,54:20530,56:20920,58:21320,60:21745
+    },
+    o12: {
+      12:5105,14:5465,16:6150,18:6330,20:6710,22:7275,24:7655,26:9095,28:9890,30:10675,
+      32:11895,34:12690,36:13485,38:14970,40:15615,42:16585,44:17255,46:17910,48:18575,
+      50:20810,52:21215,54:21625,56:22060,58:22495,60:22970
+    }
+  };
+
+  var OH_LABELS = {
+    fixed4: "4′ Fixed",
+    hinged4: "4′ Hinged",
+    o8: "8′ Overhang (7′ Clearance)",
+    o10: "10′ Overhang (7′ Clearance)",
+    o12: "12′ Overhang (7′ Clearance)"
+  };
+
+  // populate length select
+  var ohLengthSel = document.getElementById("ohLength");
+  OH_LENGTHS.forEach(function (len) {
+    var opt = document.createElement("option");
+    opt.value = len;
+    opt.textContent = len + " ft";
+    if (len === 30) opt.selected = true;
+    ohLengthSel.appendChild(opt);
+  });
+
+  // populate full price table
+  var ohTableBody = document.querySelector("#ohPriceTable tbody");
+  OH_LENGTHS.forEach(function (len) {
+    var tr = document.createElement("tr");
+    function cell(v) {
+      return v == null ? '<td class="na">N/A</td>' : "<td>" + money(v) + "</td>";
+    }
+    tr.innerHTML =
+      "<td>" + len + " ft</td>" +
+      cell(OH_PRICES.fixed4[len]) +
+      cell(OH_PRICES.hinged4[len]) +
+      cell(OH_PRICES.o8[len]) +
+      cell(OH_PRICES.o10[len]) +
+      cell(OH_PRICES.o12[len]);
+    ohTableBody.appendChild(tr);
+  });
+
+  var ohSize = "4";
+  var ohWidth = 10;
+
+  var ohSizeBtns = document.querySelectorAll("#ohSizeToggle button");
+  ohSizeBtns.forEach(function (btn) {
+    if (btn.dataset.size === ohSize) btn.classList.add("active");
+    btn.addEventListener("click", function () {
+      ohSize = btn.dataset.size;
+      ohSizeBtns.forEach(function (b) { b.classList.toggle("active", b === btn); });
+      document.getElementById("ohWidthField").classList.toggle("collapsed", ohSize !== "4");
+    });
+  });
+  document.getElementById("ohWidthField").classList.toggle("collapsed", ohSize !== "4");
+
+  var ohWidthBtns = document.querySelectorAll("#ohWidthToggle button");
+  ohWidthBtns.forEach(function (btn) {
+    if (parseInt(btn.dataset.w, 10) === ohWidth) btn.classList.add("active");
+    btn.addEventListener("click", function () {
+      ohWidth = parseInt(btn.dataset.w, 10);
+      ohWidthBtns.forEach(function (b) { b.classList.toggle("active", b === btn); });
+    });
+  });
+
+  function ohShowError(msg) {
+    var box = document.getElementById("ohErrorBox");
+    box.textContent = msg;
+    box.style.display = "block";
+  }
+  function ohClearError() {
+    var box = document.getElementById("ohErrorBox");
+    box.style.display = "none";
+    box.textContent = "";
+  }
+
+  function ohRenderResults(data) {
+    var host = document.getElementById("ohResultsHost");
+    var html = "";
+
+    html += '<div class="route-line">';
+    html += '<div class="route-node"><div class="k">Barn Length</div><div class="v">' + data.length + ' ft</div></div>';
+    html += '<div class="route-arrow">&#8594;</div>';
+    html += '<div class="route-node"><div class="k">Overhang</div><div class="v">' + data.label + '</div></div>';
+    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Out-of-shop add-on" : "With new building") + '</span>';
+    html += '</div>';
+
+    html += '<div class="ledger">';
+    html += ledgerRow("Base installed price", money(data.basePrice), false);
+    if (data.mileRate > 0) {
+      html += ledgerRow((data.mileRate === 12 ? "Crew mileage" : "Onsite-labor mileage") + " &mdash; " + money(data.mileRate) + " &times; " + data.miles + " mi", money(data.mileageCost), true);
+    }
+    if (data.outOfShop) {
+      html += ledgerRow("Out-of-shop surcharge (Wytheville)", money(500), true);
+    }
+    html += '</div>';
+
+    html += '<div class="ledger">';
+    html += '<div class="ledger-row total"><span class="label">Total</span><span class="val">' + money(data.total) + '</span></div>';
+    html += '</div>';
+
+    if (data.note) {
+      html += '<div class="note-strip">' + data.note + '</div>';
+    }
+
+    host.innerHTML = html;
+  }
+
+  document.getElementById("ohCalcBtn").addEventListener("click", function () {
+    ohClearError();
+
+    var length = parseInt(ohLengthSel.value, 10);
+    var miles = parseFloat(document.getElementById("ohMiles").value);
+    if (isNaN(miles) || miles < 0) miles = 0;
+    var outOfShop = document.getElementById("ohOutOfShop").checked;
+
+    var priceKey, mileRate, label, note;
+
+    if (ohSize === "4") {
+      if (ohWidth === 10) {
+        priceKey = "fixed4";
+        mileRate = 0;
+      } else {
+        priceKey = "hinged4";
+        mileRate = 12;
+      }
+    } else {
+      priceKey = "o" + ohSize;
+      mileRate = 14;
+    }
+
+    var basePrice = OH_PRICES[priceKey][length];
+    label = OH_LABELS[priceKey];
+
+    if (basePrice == null) {
+      ohShowError(label + " is not offered at " + length + " ft (N/A on the price sheet) — call the shop for this length.");
+      return;
+    }
+
+    var mileageCost = mileRate * miles;
+    var total = basePrice + mileageCost + (outOfShop ? 500 : 0);
+
+    if (priceKey === "fixed4" && miles > 0) {
+      note = "4′ Fixed is a flat installed price on the sheet — no per-mile crew charge applies.";
+    }
+
+    ohRenderResults({
+      length: length,
+      label: label,
+      basePrice: basePrice,
+      mileRate: mileRate,
+      miles: miles,
+      mileageCost: mileageCost,
+      outOfShop: outOfShop,
+      total: total,
+      note: note
+    });
+  });
+
 })();
 </script>
 </body>

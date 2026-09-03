@@ -1,8 +1,12 @@
-# Shipping Cost Calculator
+# Shipping & Overhang Cost Calculator
 
-A single self-contained HTML page (`index.html`) that quotes delivery cost for
-portable buildings from five dispatch locations, by destination ZIP code,
-building width, and building length.
+A single self-contained HTML page (`index.html`) with two tools:
+
+1. A shipping calculator that quotes delivery cost for portable buildings
+   from five dispatch locations, by destination ZIP code, building width,
+   and building length.
+2. An overhang calculator, at the bottom of the page, that prices shed row
+   / run-in overhangs by barn length and overhang size.
 
 Open `index.html` directly in any browser — no build step, no server, no
 external services required at runtime.
@@ -58,3 +62,32 @@ Suffolk County, NY) with a manual override checkbox for edge cases.
 - ZIP-to-coordinate data covers ~42,000 US ZIP codes; a destination ZIP not
   in the table will prompt for manual mileage entry instead of blocking the
   quote.
+
+## Overhang calculator
+
+Prices pulled from the "Shed Row Overhang Pricing" sheet (revised
+07/24/2025), for barn lengths 12′–60′ in 2′ steps.
+
+**Overhang types and per-mile add-ons:**
+
+| Overhang | Base price | Per-mile add-on |
+|---|---|---|
+| 4′ Fixed | flat installed price | none |
+| 4′ Hinged | flat installed price | +$12/mile (crew) |
+| 8′ Overhang (7′ clearance) | installed, includes roof upgrades | +$14/mile (onsite labor) |
+| 10′ Overhang (7′ clearance) | installed, includes roof upgrades | +$14/mile (onsite labor) |
+| 12′ Overhang (7′ clearance) | installed, includes roof upgrades | +$14/mile (onsite labor) |
+
+- **4′ Fixed vs. 4′ Hinged is automatic**: a 10′-wide barn always gets 4′
+  Fixed; every other barn width gets 4′ Hinged.
+- **4′ Hinged is not offered at 50′ barn length and over** (N/A on the
+  sheet) — the calculator blocks the quote and says to call the shop.
+- 8′/10′/12′ overhangs on 50′–60′ barns include forklift onsite (already
+  baked into the table price).
+- 8′, 10′, and 12′ overhangs include roof upgrades (taller front wall,
+  2×6 rafters on 16″ centers — may vary by local snow load).
+- An optional checkbox adds the sheet's **"overhangs out of Corral
+  Shop"** surcharge: **+$500** flat, for a standalone overhang added to a
+  building already in the field (billed from Wytheville) rather than
+  installed with a new build.
+- The full price table is reproduced under the calculator for reference.
