@@ -86,19 +86,22 @@ Prices pulled from the "Shed Row Overhang Pricing" sheet (revised
   baked into the table price).
 - 8′, 10′, and 12′ overhangs include roof upgrades (taller front wall,
   2×6 rafters on 16″ centers — may vary by local snow load).
-- An optional checkbox adds the sheet's **"overhangs out of Corral
-  Shop"** surcharge: **+$500** flat, for a standalone overhang added to a
-  building already in the field (billed from Wytheville) rather than
-  installed with a new build.
+- The sheet's **"overhangs out of Corral Shop"** surcharge (**+$500**
+  flat) is applied automatically, not as a checkbox — see below.
 - The full price table is reproduced under the calculator for reference.
+
+`total = (estimated driving miles + 40 mi buffer) × per-mile rate + $500 out-of-shop fee (if applicable)`
 
 **Mileage is ZIP-based, like the shipping calculator**: pick which shop is
 building the overhang and type the destination ZIP code — driving distance
 is estimated the same way (great-circle distance × road-circuity
-multiplier, with a manual override available). The mileage *origin* point
-depends on the shop:
+multiplier, with a manual override available), plus a flat **40-mile
+buffer** added before the per-mile rate is applied. The mileage *origin*
+point depends on the shop:
 
 - **Greenwood, SC** builds its overhangs out of **Wytheville, VA (24382)**,
-  so mileage is measured from there, not from Greenwood.
+  so mileage is measured from there instead of Greenwood, and the **$500
+  out-of-shop fee is added automatically** for every Greenwood quote (no
+  checkbox — it's just part of shipping out of South Carolina).
 - **Clarkson KY, Atglen PA, Powell WY, and Mill Hall PA** each bill mileage
-  from their own location directly.
+  from their own location directly, with no out-of-shop fee.

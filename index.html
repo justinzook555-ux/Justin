@@ -666,11 +666,6 @@
           <div class="hint" id="ohDestHint">&nbsp;</div>
         </div>
 
-        <div class="field checkline">
-          <input type="checkbox" id="ohOutOfShop" />
-          <label for="ohOutOfShop" style="margin:0; text-transform:none; letter-spacing:0; font-family: var(--font-body); font-size: 13.5px; color: var(--ink);">Standalone overhang added out of the Corral Shop (+$500, billed from Wytheville)</label>
-        </div>
-
         <details class="advanced">
           <summary>Advanced &mdash; mileage &amp; buffer overrides</summary>
           <div class="field">
@@ -723,7 +718,7 @@
       </table>
     </div>
     <div class="note-strip" style="margin: 12px 2px 0;">
-      Prices are installed and, for 50&prime;&ndash;60&prime; barns, include forklift onsite. 4&prime; Hinged is not offered at 50&prime; and over (N/A) &mdash; call the shop for those lengths. Table source: Shed Row Overhang Pricing, revised 07/24/2025.
+      Prices are installed and, for 50&prime;&ndash;60&prime; barns, include forklift onsite. 4&prime; Hinged is not offered at 50&prime; and over (N/A) &mdash; call the shop for those lengths. A 40-mile buffer is added to every mileage estimate before the per-mile rate is applied. Overhangs shipped out of South Carolina are built out of Wytheville, VA and automatically include the $500 out-of-shop fee. Table source: Shed Row Overhang Pricing, revised 07/24/2025.
     </div>
   </section>
 
@@ -971,6 +966,8 @@
   // =====================================================================
 
   var OH_LENGTHS = [12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60];
+  var OH_BUFFER = 40;
+  var OH_OUT_OF_SHOP_FEE = 500;
 
   var OH_PRICES = {
     fixed4: {
@@ -1059,7 +1056,7 @@
     var mileOrigin = ohMileageOrigin(ohOriginSel.value);
     var hint = document.getElementById("ohOriginHint");
     hint.textContent = "Mileage billed from " + mileOrigin.name + " (ZIP " + mileOrigin.zip + ")" +
-      (ohOriginSel.value === "greenwood" ? " — built from Wytheville, not Greenwood." : ".");
+      (ohOriginSel.value === "greenwood" ? " — built from Wytheville, not Greenwood. Includes the $" + OH_OUT_OF_SHOP_FEE + " out-of-shop fee automatically." : ".");
   }
   ohOriginSel.addEventListener("change", ohUpdateOriginHint);
   ohUpdateOriginHint();
@@ -1117,7 +1114,7 @@
     html += '<div class="route-node"><div class="k">Mileage From</div><div class="v">' + data.mileOriginName + '</div></div>';
     html += '<div class="route-arrow">&#8594;</div>';
     html += '<div class="route-node"><div class="k">To</div><div class="v">' + data.destLabel + '</div></div>';
-    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Out-of-shop add-on" : "With new building") + '</span>';
+    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Built out of Wytheville (+$" + OH_OUT_OF_SHOP_FEE + ")" : "Built at shop") + '</span>';
     html += '</div>';
     html += '<div class="route-line" style="border-top:none; padding-top:0;">';
     html += '<div class="route-node"><div class="k">Barn Length</div><div class="v">' + data.length + ' ft</div></div>';
@@ -1130,14 +1127,17 @@
     if (!data.usedManual) {
       html += ledgerRow("Straight-line distance from " + data.mileOriginName, miles(data.straightLine), true);
       html += ledgerRow("Road-circuity multiplier", "&times; " + data.circuity.toFixed(2), true);
+      html += ledgerRow("Estimated driving distance", miles(data.drivingMiles), true);
     } else {
-      html += ledgerRow("Manual mileage from " + data.mileOriginName, miles(data.milesUsed), true);
+      html += ledgerRow("Manual mileage from " + data.mileOriginName, miles(data.drivingMiles), true);
     }
+    html += ledgerRow("Mile buffer", "+ " + miles(data.buffer), true);
+    html += ledgerRow("Billed miles", miles(data.billedMiles), false);
     if (data.mileRate > 0) {
-      html += ledgerRow((data.mileRate === 12 ? "Crew mileage" : "Onsite-labor mileage") + " &mdash; " + money(data.mileRate) + " &times; " + miles(data.milesUsed), money(data.mileageCost), false);
+      html += ledgerRow((data.mileRate === 12 ? "Crew mileage" : "Onsite-labor mileage") + " &mdash; " + money(data.mileRate) + " &times; " + miles(data.billedMiles), money(data.mileageCost), false);
     }
     if (data.outOfShop) {
-      html += ledgerRow("Out-of-shop surcharge (Wytheville)", money(500), true);
+      html += ledgerRow("Out-of-shop surcharge (Wytheville)", money(OH_OUT_OF_SHOP_FEE), true);
     }
     html += '</div>';
 
@@ -1160,7 +1160,7 @@
     var manualMilesRaw = document.getElementById("ohManualMiles").value;
     var manualMiles = manualMilesRaw !== "" ? parseFloat(manualMilesRaw) : null;
     var circuity = parseFloat(document.getElementById("ohCircuity").value) || 1.25;
-    var outOfShop = document.getElementById("ohOutOfShop").checked;
+    var outOfShop = ohOriginSel.value === "greenwood";
 
     var mileOrigin = ohMileageOrigin(ohOriginSel.value);
 
@@ -1179,8 +1179,9 @@
     }
 
     var straightLine = destRec ? haversineMiles(mileOrigin.lat, mileOrigin.lon, destRec[0], destRec[1]) : 0;
-    var milesUsed = manualMiles !== null ? manualMiles : straightLine * circuity;
+    var drivingMiles = manualMiles !== null ? manualMiles : straightLine * circuity;
     var usedManual = manualMiles !== null;
+    var billedMiles = drivingMiles + OH_BUFFER;
 
     var priceKey, mileRate, label, note;
 
@@ -1205,10 +1206,10 @@
       return;
     }
 
-    var mileageCost = mileRate * milesUsed;
-    var total = basePrice + mileageCost + (outOfShop ? 500 : 0);
+    var mileageCost = mileRate * billedMiles;
+    var total = basePrice + mileageCost + (outOfShop ? OH_OUT_OF_SHOP_FEE : 0);
 
-    if (priceKey === "fixed4" && milesUsed > 0) {
+    if (priceKey === "fixed4" && billedMiles > 0) {
       note = "4′ Fixed is a flat installed price on the sheet — no per-mile crew charge applies.";
     }
 
@@ -1221,7 +1222,9 @@
       destLabel: destRec ? (destRec[3] + ", " + destRec[2] + " " + destZip) : (destZip + " (manual mileage)"),
       straightLine: straightLine,
       circuity: circuity,
-      milesUsed: milesUsed,
+      drivingMiles: drivingMiles,
+      buffer: OH_BUFFER,
+      billedMiles: billedMiles,
       usedManual: usedManual,
       mileageCost: mileageCost,
       outOfShop: outOfShop,
