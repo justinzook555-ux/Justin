@@ -99,7 +99,7 @@ multiplier, with a manual override available), plus a flat **40-mile
 buffer** added before the per-mile rate is applied. The mileage *origin*
 point depends on the shop:
 
-- **Greenwood, SC** builds its overhangs out of **Wytheville, VA (24382)**,
+- **Greenwood, SC** builds its overhangs out of **Mooresville, NC (28115)**,
   so mileage is measured from there instead of Greenwood, and the **$500
   out-of-shop fee is added automatically** for every Greenwood quote (no
   checkbox — it's just part of shipping out of South Carolina).

@@ -718,7 +718,7 @@
       </table>
     </div>
     <div class="note-strip" style="margin: 12px 2px 0;">
-      Prices are installed and, for 50&prime;&ndash;60&prime; barns, include forklift onsite. 4&prime; Hinged is not offered at 50&prime; and over (N/A) &mdash; call the shop for those lengths. A 40-mile buffer is added to every mileage estimate before the per-mile rate is applied. Overhangs shipped out of South Carolina are built out of Wytheville, VA and automatically include the $500 out-of-shop fee. Table source: Shed Row Overhang Pricing, revised 07/24/2025.
+      Prices are installed and, for 50&prime;&ndash;60&prime; barns, include forklift onsite. 4&prime; Hinged is not offered at 50&prime; and over (N/A) &mdash; call the shop for those lengths. A 40-mile buffer is added to every mileage estimate before the per-mile rate is applied. Overhangs shipped out of South Carolina are built out of Mooresville, NC and automatically include the $500 out-of-shop fee. Table source: Shed Row Overhang Pricing, revised 07/24/2025.
     </div>
   </section>
 
@@ -1032,15 +1032,15 @@
     ohTableBody.appendChild(tr);
   });
 
-  var WYTHEVILLE = (function () {
-    var rec = ZIP_DATA["24382"];
-    return { name: "Wytheville, VA", zip: "24382", lat: rec[0], lon: rec[1] };
+  var MOORESVILLE = (function () {
+    var rec = ZIP_DATA["28115"];
+    return { name: "Mooresville, NC", zip: "28115", lat: rec[0], lon: rec[1] };
   })();
 
-  // Mileage for the Greenwood, SC shop is built from Wytheville, VA
+  // Mileage for the Greenwood, SC shop is built from Mooresville, NC
   // instead of Greenwood itself; every other shop bills from its own location.
   function ohMileageOrigin(originId) {
-    if (originId === "greenwood") return WYTHEVILLE;
+    if (originId === "greenwood") return MOORESVILLE;
     return ORIGINS.filter(function (o) { return o.id === originId; })[0];
   }
 
@@ -1056,7 +1056,7 @@
     var mileOrigin = ohMileageOrigin(ohOriginSel.value);
     var hint = document.getElementById("ohOriginHint");
     hint.textContent = "Mileage billed from " + mileOrigin.name + " (ZIP " + mileOrigin.zip + ")" +
-      (ohOriginSel.value === "greenwood" ? " — built from Wytheville, not Greenwood. Includes the $" + OH_OUT_OF_SHOP_FEE + " out-of-shop fee automatically." : ".");
+      (ohOriginSel.value === "greenwood" ? " — built from Mooresville, not Greenwood. Includes the $" + OH_OUT_OF_SHOP_FEE + " out-of-shop fee automatically." : ".");
   }
   ohOriginSel.addEventListener("change", ohUpdateOriginHint);
   ohUpdateOriginHint();
@@ -1114,7 +1114,7 @@
     html += '<div class="route-node"><div class="k">Mileage From</div><div class="v">' + data.mileOriginName + '</div></div>';
     html += '<div class="route-arrow">&#8594;</div>';
     html += '<div class="route-node"><div class="k">To</div><div class="v">' + data.destLabel + '</div></div>';
-    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Built out of Wytheville (+$" + OH_OUT_OF_SHOP_FEE + ")" : "Built at shop") + '</span>';
+    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Built out of Mooresville (+$" + OH_OUT_OF_SHOP_FEE + ")" : "Built at shop") + '</span>';
     html += '</div>';
     html += '<div class="route-line" style="border-top:none; padding-top:0;">';
     html += '<div class="route-node"><div class="k">Barn Length</div><div class="v">' + data.length + ' ft</div></div>';
@@ -1137,7 +1137,7 @@
       html += ledgerRow((data.mileRate === 12 ? "Crew mileage" : "Onsite-labor mileage") + " &mdash; " + money(data.mileRate) + " &times; " + miles(data.billedMiles), money(data.mileageCost), false);
     }
     if (data.outOfShop) {
-      html += ledgerRow("Out-of-shop surcharge (Wytheville)", money(OH_OUT_OF_SHOP_FEE), true);
+      html += ledgerRow("Out-of-shop surcharge (Mooresville)", money(OH_OUT_OF_SHOP_FEE), true);
     }
     html += '</div>';
 
