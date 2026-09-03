@@ -54,8 +54,8 @@ number, use the **manual mileage** field in Advanced to type in a distance
 looked up from a mapping tool — the location's mile buffer is still added on
 top of a manual entry.
 
-Long Island detection is automatic (destination ZIP falls in Nassau or
-Suffolk County, NY) with a manual override checkbox for edge cases.
+Long Island detection is fully automatic — the destination ZIP's county is
+checked against Nassau/Suffolk, NY — with no manual checkbox or override.
 
 ## Assumptions worth double-checking
 
@@ -115,7 +115,9 @@ Prices pulled from the "Shed Row Overhang Pricing" sheet (revised
   toggle.
 
 `overhang total = (billed miles × per-mile rate) + base price + $500 out-of-shop fee (if applicable)`
-`grand total = shipping total + overhang total`
+
+The quote shows two separate totals — **Barn Total** and **Overhang
+Total** — with no combined grand total.
 
 **Overhang mileage — shared with the shipping leg, except out of
 Greenwood, SC**:

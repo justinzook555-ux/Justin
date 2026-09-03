@@ -146,12 +146,6 @@
     color: var(--rust);
     margin-top: 3px;
   }
-  .origin-chip .zipline {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: rgba(242,239,231,0.6);
-    margin-top: 5px;
-  }
 
   /* ---- Layout ---- */
   .workspace {
@@ -564,11 +558,6 @@
         </div>
 
         <div class="field checkline">
-          <input type="checkbox" id="forceLI" />
-          <label for="forceLI" style="margin:0; text-transform:none; letter-spacing:0; font-family: var(--font-body); font-size: 13.5px; color: var(--ink);">This delivery is Long Island, NY (force $750 Atglen drop fee)</label>
-        </div>
-
-        <div class="field checkline">
           <input type="checkbox" id="addOverhang" />
           <label for="addOverhang" style="margin:0; text-transform:none; letter-spacing:0; font-family: var(--font-body); font-size: 13.5px; color: var(--ink);">Add an overhang to this quote</label>
         </div>
@@ -754,8 +743,7 @@
     div.className = "origin-chip";
     div.innerHTML =
       '<div class="city">' + o.name + '</div>' +
-      '<div class="tag">' + (o.tier === "atglen" ? "Atglen rate" : "Standard rate") + '</div>' +
-      '<div class="zipline">ZIP ' + o.zip + '</div>';
+      '<div class="tag">' + (o.tier === "atglen" ? "Atglen rate" : "Standard rate") + '</div>';
     stripEl.appendChild(div);
   });
 
@@ -841,7 +829,7 @@
     html += '</div>';
 
     html += '<div class="ledger">';
-    html += '<div class="ledger-row' + (data.overhang ? '' : ' total') + '"><span class="label">' + (data.overhang ? "Shipping subtotal" : "Total") + '</span><span class="val">' + money(data.total) + '</span></div>';
+    html += '<div class="ledger-row total"><span class="label">Barn Total</span><span class="val">' + money(data.total) + '</span></div>';
     html += '</div>';
 
     if (data.note) {
@@ -851,10 +839,6 @@
     if (data.overhang) {
       html += '<div class="addon-divider"><div class="eyebrow">Add-on</div><div class="title">Overhang</div></div>';
       html += ohRenderFragment(data.overhang);
-
-      html += '<div class="ledger">';
-      html += '<div class="ledger-row total"><span class="label">Grand Total</span><span class="val">' + money(data.total + data.overhang.total) + '</span></div>';
-      html += '</div>';
     }
 
     host.innerHTML = html;
@@ -873,7 +857,6 @@
     var manualMilesRaw = document.getElementById("manualMiles").value;
     var manualMiles = manualMilesRaw !== "" ? parseFloat(manualMilesRaw) : null;
     var circuity = parseFloat(document.getElementById("circuity").value) || 1.25;
-    var forceLI = document.getElementById("forceLI").checked;
 
     if (destZip.length !== 5) {
       showError("Enter a 5-digit destination ZIP code.");
@@ -897,7 +880,7 @@
 
     if (origin.tier === "atglen") {
       buffer = ATGLEN_BUFFER;
-      longIsland = forceLI || isLongIsland(destRec);
+      longIsland = isLongIsland(destRec);
       dropFee = longIsland ? ATGLEN_DROP_LI : ATGLEN_DROP;
       if (!isNaN(lengthFt) && lengthFt > 0 && lengthFt <= ATGLEN_HALF_LOAD_MAX) {
         rateTable = ATGLEN_HALF_LOAD_RATE;
@@ -1158,7 +1141,10 @@
     if (data.outOfShop) {
       html += ledgerRow("Out-of-shop surcharge (Mooresville)", money(OH_OUT_OF_SHOP_FEE), true);
     }
-    html += ledgerRow("Overhang subtotal", money(data.total), false);
+    html += '</div>';
+
+    html += '<div class="ledger">';
+    html += '<div class="ledger-row total"><span class="label">Overhang Total</span><span class="val">' + money(data.total) + '</span></div>';
     html += '</div>';
 
     if (data.note) {
