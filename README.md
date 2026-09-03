@@ -91,3 +91,14 @@ Prices pulled from the "Shed Row Overhang Pricing" sheet (revised
   building already in the field (billed from Wytheville) rather than
   installed with a new build.
 - The full price table is reproduced under the calculator for reference.
+
+**Mileage is ZIP-based, like the shipping calculator**: pick which shop is
+building the overhang and type the destination ZIP code — driving distance
+is estimated the same way (great-circle distance × road-circuity
+multiplier, with a manual override available). The mileage *origin* point
+depends on the shop:
+
+- **Greenwood, SC** builds its overhangs out of **Wytheville, VA (24382)**,
+  so mileage is measured from there, not from Greenwood.
+- **Clarkson KY, Atglen PA, Powell WY, and Mill Hall PA** each bill mileage
+  from their own location directly.

@@ -655,15 +655,35 @@
         </div>
 
         <div class="field">
-          <label for="ohMiles">Crew / Onsite-Labor Miles (one-way)</label>
-          <input type="number" id="ohMiles" min="0" step="1" placeholder="e.g. 45" />
-          <div class="hint" id="ohMileHint">&nbsp;</div>
+          <label for="ohOrigin">Shop Building This Overhang</label>
+          <select id="ohOrigin"></select>
+          <div class="hint" id="ohOriginHint">&nbsp;</div>
+        </div>
+
+        <div class="field">
+          <label for="ohDestZip">Destination ZIP Code</label>
+          <input type="text" id="ohDestZip" inputmode="numeric" maxlength="5" placeholder="e.g. 21201" />
+          <div class="hint" id="ohDestHint">&nbsp;</div>
         </div>
 
         <div class="field checkline">
           <input type="checkbox" id="ohOutOfShop" />
           <label for="ohOutOfShop" style="margin:0; text-transform:none; letter-spacing:0; font-family: var(--font-body); font-size: 13.5px; color: var(--ink);">Standalone overhang added out of the Corral Shop (+$500, billed from Wytheville)</label>
         </div>
+
+        <details class="advanced">
+          <summary>Advanced &mdash; mileage &amp; buffer overrides</summary>
+          <div class="field">
+            <label for="ohManualMiles">Manual one-way mileage (optional)</label>
+            <input type="number" id="ohManualMiles" min="0" step="1" placeholder="Leave blank to auto-estimate from ZIP codes" />
+            <div class="hint">Overrides the ZIP-based estimate with an exact number, e.g. from a mapping tool.</div>
+          </div>
+          <div class="field">
+            <label for="ohCircuity">Road-circuity multiplier</label>
+            <input type="number" id="ohCircuity" min="1" step="0.01" value="1.25" />
+            <div class="hint">Converts straight-line ZIP-to-ZIP distance into an estimated driving distance.</div>
+          </div>
+        </details>
 
         <div style="margin-top:18px;">
           <button class="btn-primary" id="ohCalcBtn">Calculate Overhang</button>
@@ -1015,6 +1035,46 @@
     ohTableBody.appendChild(tr);
   });
 
+  var WYTHEVILLE = (function () {
+    var rec = ZIP_DATA["24382"];
+    return { name: "Wytheville, VA", zip: "24382", lat: rec[0], lon: rec[1] };
+  })();
+
+  // Mileage for the Greenwood, SC shop is built from Wytheville, VA
+  // instead of Greenwood itself; every other shop bills from its own location.
+  function ohMileageOrigin(originId) {
+    if (originId === "greenwood") return WYTHEVILLE;
+    return ORIGINS.filter(function (o) { return o.id === originId; })[0];
+  }
+
+  var ohOriginSel = document.getElementById("ohOrigin");
+  ORIGINS.forEach(function (o) {
+    var opt = document.createElement("option");
+    opt.value = o.id;
+    opt.textContent = o.name;
+    ohOriginSel.appendChild(opt);
+  });
+
+  function ohUpdateOriginHint() {
+    var mileOrigin = ohMileageOrigin(ohOriginSel.value);
+    var hint = document.getElementById("ohOriginHint");
+    hint.textContent = "Mileage billed from " + mileOrigin.name + " (ZIP " + mileOrigin.zip + ")" +
+      (ohOriginSel.value === "greenwood" ? " — built from Wytheville, not Greenwood." : ".");
+  }
+  ohOriginSel.addEventListener("change", ohUpdateOriginHint);
+  ohUpdateOriginHint();
+
+  document.getElementById("ohDestZip").addEventListener("input", function (e) {
+    e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 5);
+    var hint = document.getElementById("ohDestHint");
+    if (e.target.value.length === 5) {
+      var rec = ZIP_DATA[e.target.value];
+      hint.textContent = rec ? (rec[3] + ", " + rec[2] + " (" + rec[4] + " County)") : "ZIP not found — enter manual mileage below, or double-check the ZIP.";
+    } else {
+      hint.innerHTML = "&nbsp;";
+    }
+  });
+
   var ohSize = "4";
   var ohWidth = 10;
 
@@ -1054,16 +1114,27 @@
     var html = "";
 
     html += '<div class="route-line">';
-    html += '<div class="route-node"><div class="k">Barn Length</div><div class="v">' + data.length + ' ft</div></div>';
+    html += '<div class="route-node"><div class="k">Mileage From</div><div class="v">' + data.mileOriginName + '</div></div>';
     html += '<div class="route-arrow">&#8594;</div>';
-    html += '<div class="route-node"><div class="k">Overhang</div><div class="v">' + data.label + '</div></div>';
+    html += '<div class="route-node"><div class="k">To</div><div class="v">' + data.destLabel + '</div></div>';
     html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Out-of-shop add-on" : "With new building") + '</span>';
+    html += '</div>';
+    html += '<div class="route-line" style="border-top:none; padding-top:0;">';
+    html += '<div class="route-node"><div class="k">Barn Length</div><div class="v">' + data.length + ' ft</div></div>';
+    html += '<div class="route-arrow">&#8226;</div>';
+    html += '<div class="route-node"><div class="k">Overhang</div><div class="v">' + data.label + '</div></div>';
     html += '</div>';
 
     html += '<div class="ledger">';
     html += ledgerRow("Base installed price", money(data.basePrice), false);
+    if (!data.usedManual) {
+      html += ledgerRow("Straight-line distance from " + data.mileOriginName, miles(data.straightLine), true);
+      html += ledgerRow("Road-circuity multiplier", "&times; " + data.circuity.toFixed(2), true);
+    } else {
+      html += ledgerRow("Manual mileage from " + data.mileOriginName, miles(data.milesUsed), true);
+    }
     if (data.mileRate > 0) {
-      html += ledgerRow((data.mileRate === 12 ? "Crew mileage" : "Onsite-labor mileage") + " &mdash; " + money(data.mileRate) + " &times; " + data.miles + " mi", money(data.mileageCost), true);
+      html += ledgerRow((data.mileRate === 12 ? "Crew mileage" : "Onsite-labor mileage") + " &mdash; " + money(data.mileRate) + " &times; " + miles(data.milesUsed), money(data.mileageCost), false);
     }
     if (data.outOfShop) {
       html += ledgerRow("Out-of-shop surcharge (Wytheville)", money(500), true);
@@ -1085,9 +1156,31 @@
     ohClearError();
 
     var length = parseInt(ohLengthSel.value, 10);
-    var miles = parseFloat(document.getElementById("ohMiles").value);
-    if (isNaN(miles) || miles < 0) miles = 0;
+    var destZip = document.getElementById("ohDestZip").value.trim();
+    var manualMilesRaw = document.getElementById("ohManualMiles").value;
+    var manualMiles = manualMilesRaw !== "" ? parseFloat(manualMilesRaw) : null;
+    var circuity = parseFloat(document.getElementById("ohCircuity").value) || 1.25;
     var outOfShop = document.getElementById("ohOutOfShop").checked;
+
+    var mileOrigin = ohMileageOrigin(ohOriginSel.value);
+
+    if (destZip.length !== 5) {
+      ohShowError("Enter a 5-digit destination ZIP code.");
+      return;
+    }
+    var destRec = ZIP_DATA[destZip];
+    if (!destRec && manualMiles === null) {
+      ohShowError("That ZIP code wasn't found in the lookup table. Enter a manual mileage in Advanced to continue anyway.");
+      return;
+    }
+    if (manualMiles !== null && (isNaN(manualMiles) || manualMiles < 0)) {
+      ohShowError("Manual mileage must be a positive number.");
+      return;
+    }
+
+    var straightLine = destRec ? haversineMiles(mileOrigin.lat, mileOrigin.lon, destRec[0], destRec[1]) : 0;
+    var milesUsed = manualMiles !== null ? manualMiles : straightLine * circuity;
+    var usedManual = manualMiles !== null;
 
     var priceKey, mileRate, label, note;
 
@@ -1112,10 +1205,10 @@
       return;
     }
 
-    var mileageCost = mileRate * miles;
+    var mileageCost = mileRate * milesUsed;
     var total = basePrice + mileageCost + (outOfShop ? 500 : 0);
 
-    if (priceKey === "fixed4" && miles > 0) {
+    if (priceKey === "fixed4" && milesUsed > 0) {
       note = "4′ Fixed is a flat installed price on the sheet — no per-mile crew charge applies.";
     }
 
@@ -1124,7 +1217,12 @@
       label: label,
       basePrice: basePrice,
       mileRate: mileRate,
-      miles: miles,
+      mileOriginName: mileOrigin.name,
+      destLabel: destRec ? (destRec[3] + ", " + destRec[2] + " " + destZip) : (destZip + " (manual mileage)"),
+      straightLine: straightLine,
+      circuity: circuity,
+      milesUsed: milesUsed,
+      usedManual: usedManual,
       mileageCost: mileageCost,
       outOfShop: outOfShop,
       total: total,
