@@ -20,16 +20,30 @@ external services required at runtime.
 
 ## Rate rules
 
+Each shop ships a different set of building widths, shown as the Building
+Width options once that shop is selected:
+- **Greenwood SC, Clarkson KY, Powell WY, Mill Hall PA**: 10′, 12′, 14′-wide
+- **Atglen, PA**: 6′, 8′, 10′, 12′-wide (no 14′)
+
 **Standard tier** (Greenwood SC, Clarkson KY, Powell WY, Mill Hall PA):
 - $10/mile for 10′-wide, $12/mile for 12′-wide, $14/mile for 14′-wide
 - +60 mile buffer added to the estimated distance
 - $500 flat drop fee
 
-**Atglen tier** — rate depends on building length (load size):
-- **30′ and under (half load)**: $5/mile (10′-wide), $6/mile (12′-wide), $7/mile (14′-wide)
-- **31′–42′ (three-quarter load)**: $7/mile (10′-wide), $8.50/mile (12′-wide), $10/mile (14′-wide)
-- **43′ and over (full load)**: same per-mile rates as the Standard tier ($10/$12/$14)
-- +50 mile buffer added to the estimated distance (all length classes)
+**Atglen tier** — Atglen does not split loads; every shipment prices off
+the per-mile rate for its width and building-length bracket:
+
+| Building length | 6′ / 8′ wide | 10′ wide | 12′ wide |
+|---|---|---|---|
+| 12 ft and under | $4/mile | $5/mile (14 ft and under) | $8/mile (14 ft and under) |
+| 13–24 ft | $6/mile | $7/mile (15–24 ft) | $9/mile (15–24 ft) |
+| 25–40 ft | $7/mile | $8/mile | $10/mile |
+| 41 ft and over | $8/mile | $9/mile | $12/mile |
+
+(10′ and 12′-wide use 14 ft, not 12 ft, as the first bracket's ceiling —
+see Assumptions below.)
+
+- +50 mile buffer added to the estimated distance
 - $250 flat drop fee — **$750** if the destination is Long Island, NY (Nassau or Suffolk County)
 
 `total = max(rate × billed miles, minimum mileage cost) + drop fee`
@@ -62,10 +76,19 @@ checked against Nassau/Suffolk, NY — with no manual checkbox or override.
 - "Clarks, KY" and "Ackland, PA" from the original request were confirmed as
   **Clarkson, KY (42726)** and **Atglen, PA (19310)**.
 - The Atglen $250/$750 drop fee is flat regardless of building length; only
-  the per-mile rate changes across the half / three-quarter / full load
-  length brackets.
-- 30′ exactly falls into the half-load bracket (30′ and under); the
-  three-quarter bracket is 31′–42′, and full load starts at 43′.
+  the per-mile rate changes across the length brackets.
+- The Atglen length brackets as given had gaps or overlaps at their edges
+  (e.g. "0-12" then "14-24" for 6′/8′-wide; "0-14" then "14-24" for
+  10′/12′-wide). Since buildings are built in 2 ft steps, each bracket is
+  implemented as "up to and including its stated ceiling," so the next
+  bracket effectively starts 2 ft later — no length is double-priced or
+  unpriced. This is why 10′/12′-wide's first bracket ceiling is 14 ft
+  while 6′/8′-wide's is 12 ft: that's what was explicitly stated for each.
+  A length above the last bracket's ceiling (56 ft) still bills at that
+  top bracket's rate.
+- 14′-wide is no longer offered from Atglen — the new pricing only defined
+  6′, 8′, 10′, and 12′-wide, so the Building Width choices for Atglen
+  became 6′/8′/10′/12′ instead of 10′/12′/14′.
 - The minimum mileage cost applies to the *mileage cost* line only (rate ×
   billed miles), not the total — the drop fee (and Long Island surcharge)
   is always added on top after the minimum is applied.
