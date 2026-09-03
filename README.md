@@ -28,10 +28,11 @@ external services required at runtime.
 - +60 mile buffer added to the estimated distance
 - $500 flat drop fee
 
-**Atglen tier**:
-- Buildings **under 30′ long**: $5/mile (10′-wide), $6/mile (12′-wide), $7/mile (14′-wide)
-- Buildings **30′ and over**: same per-mile rates as the Standard tier ($10/$12/$14)
-- +50 mile buffer added to the estimated distance (both length classes)
+**Atglen tier** — rate depends on building length (load size):
+- **Under 30′ long (half load)**: $5/mile (10′-wide), $6/mile (12′-wide), $7/mile (14′-wide)
+- **31′–42′ long (three-quarter load)**: $7/mile (10′-wide), $8.50/mile (12′-wide), $10/mile (14′-wide)
+- **30′ exactly, or 43′ and over (full load)**: same per-mile rates as the Standard tier ($10/$12/$14)
+- +50 mile buffer added to the estimated distance (all length classes)
 - $250 flat drop fee — **$750** if the destination is Long Island, NY (Nassau or Suffolk County)
 
 `total = (estimated driving miles + buffer) × per-mile rate + drop fee`
@@ -58,7 +59,11 @@ Suffolk County, NY) with a manual override checkbox for edge cases.
 - "Clarks, KY" and "Ackland, PA" from the original request were confirmed as
   **Clarkson, KY (42726)** and **Atglen, PA (19310)**.
 - The Atglen $250/$750 drop fee is flat regardless of building length; only
-  the per-mile rate changes at the 30′ length split.
+  the per-mile rate changes across the half / three-quarter / full load
+  length brackets.
+- 30′ exactly falls into the full-load bracket, not the three-quarter one —
+  the three-quarter bracket is 31′–42′ specifically, matching how it was
+  requested.
 - ZIP-to-coordinate data covers ~42,000 US ZIP codes; a destination ZIP not
   in the table will prompt for manual mileage entry instead of blocking the
   quote.
@@ -88,7 +93,9 @@ Prices pulled from the "Shed Row Overhang Pricing" sheet (revised
   2×6 rafters on 16″ centers — may vary by local snow load).
 - The sheet's **"overhangs out of Corral Shop"** surcharge (**+$500**
   flat) is applied automatically, not as a checkbox — see below.
-- The full price table is reproduced under the calculator for reference.
+- The full price table and these rules are reproduced under the calculator,
+  collapsed by default behind a "Show full overhang price table & rules"
+  toggle.
 
 `total = (estimated driving miles + 40 mi buffer) × per-mile rate + $500 out-of-shop fee (if applicable)`
 

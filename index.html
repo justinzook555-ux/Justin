@@ -540,7 +540,7 @@
         <div class="field">
           <label for="lengthFt">Building Length (ft)</label>
           <input type="number" id="lengthFt" min="0" step="1" placeholder="e.g. 28" />
-          <div class="hint">Only changes the rate from Atglen, PA &mdash; under 30&prime; long uses the reduced 10&prime;-wide rate.</div>
+          <div class="hint">Only changes the rate from Atglen, PA &mdash; under 30&prime; is half load, 31&prime;&ndash;42&prime; is three-quarter load, everything else is full load.</div>
         </div>
 
         <div class="field checkline">
@@ -594,7 +594,7 @@
         <div class="row"><span class="label">Drop fee</span><span>$500</span></div>
       </div>
       <div class="rate-card">
-        <h3>Atglen, PA &mdash; under 30&prime; long</h3>
+        <h3>Atglen, PA &mdash; under 30&prime; long (half load)</h3>
         <div class="row"><span class="label">10&prime; wide</span><span>$5 / mile</span></div>
         <div class="row"><span class="label">12&prime; wide</span><span>$6 / mile</span></div>
         <div class="row"><span class="label">14&prime; wide</span><span>$7 / mile</span></div>
@@ -602,7 +602,15 @@
         <div class="row"><span class="label">Drop fee</span><span>$250 ($750 to Long Island, NY)</span></div>
       </div>
       <div class="rate-card">
-        <h3>Atglen, PA &mdash; 30&prime; long and over</h3>
+        <h3>Atglen, PA &mdash; 31&prime;&ndash;42&prime; long (three-quarter load)</h3>
+        <div class="row"><span class="label">10&prime; wide</span><span>$7 / mile</span></div>
+        <div class="row"><span class="label">12&prime; wide</span><span>$8.50 / mile</span></div>
+        <div class="row"><span class="label">14&prime; wide</span><span>$10 / mile</span></div>
+        <div class="row"><span class="label">Mile buffer</span><span>+50 mi</span></div>
+        <div class="row"><span class="label">Drop fee</span><span>$250 ($750 to Long Island, NY)</span></div>
+      </div>
+      <div class="rate-card">
+        <h3>Atglen, PA &mdash; 30&prime; or 43&prime;+ (full load)</h3>
         <div class="row"><span class="label">10&prime; wide</span><span>$10 / mile</span></div>
         <div class="row"><span class="label">12&prime; wide</span><span>$12 / mile</span></div>
         <div class="row"><span class="label">14&prime; wide</span><span>$14 / mile</span></div>
@@ -701,26 +709,29 @@
 
   </div>
 
-  <section class="ratesheet">
-    <div class="table-scroll" style="margin-top: 14px;">
-      <table class="pricetable" id="ohPriceTable">
-        <thead>
-          <tr>
-            <th>Length of Barn</th>
-            <th>4&prime; Fixed</th>
-            <th>4&prime; Hinged (+$12/mi crew)</th>
-            <th>8&prime; Overhang (+$14/mi)</th>
-            <th>10&prime; Overhang (+$14/mi)</th>
-            <th>12&prime; Overhang (+$14/mi)</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div class="note-strip" style="margin: 12px 2px 0;">
-      Prices are installed and, for 50&prime;&ndash;60&prime; barns, include forklift onsite. 4&prime; Hinged is not offered at 50&prime; and over (N/A) &mdash; call the shop for those lengths. A 40-mile buffer is added to every mileage estimate before the per-mile rate is applied. Overhangs shipped out of South Carolina are built out of Mooresville, NC and automatically include the $500 out-of-shop fee. Table source: Shed Row Overhang Pricing, revised 07/24/2025.
-    </div>
-  </section>
+  <details class="advanced" style="margin-top: 22px; border-top: 2px solid var(--line-strong); padding-top: 16px;">
+    <summary>Show full overhang price table &amp; rules</summary>
+    <section class="ratesheet">
+      <div class="table-scroll" style="margin-top: 14px;">
+        <table class="pricetable" id="ohPriceTable">
+          <thead>
+            <tr>
+              <th>Length of Barn</th>
+              <th>4&prime; Fixed</th>
+              <th>4&prime; Hinged (+$12/mi crew)</th>
+              <th>8&prime; Overhang (+$14/mi)</th>
+              <th>10&prime; Overhang (+$14/mi)</th>
+              <th>12&prime; Overhang (+$14/mi)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="note-strip" style="margin: 12px 2px 0;">
+        Prices are installed and, for 50&prime;&ndash;60&prime; barns, include forklift onsite. 4&prime; Hinged is not offered at 50&prime; and over (N/A) &mdash; call the shop for those lengths. A 40-mile buffer is added to every mileage estimate before the per-mile rate is applied. Overhangs shipped out of South Carolina are built out of Mooresville, NC and automatically include the $500 out-of-shop fee. Table source: Shed Row Overhang Pricing, revised 07/24/2025.
+      </div>
+    </section>
+  </details>
 
 </div>
 
@@ -740,14 +751,17 @@
   ];
 
   var STANDARD_RATE = { 10: 10, 12: 12, 14: 14 };
-  var ATGLEN_SHORT_RATE = { 10: 5, 12: 6, 14: 7 };
-  var ATGLEN_LONG_RATE = { 10: 10, 12: 12, 14: 14 };
+  var ATGLEN_HALF_LOAD_RATE = { 10: 5, 12: 6, 14: 7 };
+  var ATGLEN_THREE_QUARTER_LOAD_RATE = { 10: 7, 12: 8.5, 14: 10 };
+  var ATGLEN_FULL_LOAD_RATE = { 10: 10, 12: 12, 14: 14 };
   var STANDARD_BUFFER = 60;
   var STANDARD_DROP = 500;
   var ATGLEN_BUFFER = 50;
   var ATGLEN_DROP = 250;
   var ATGLEN_DROP_LI = 750;
-  var ATGLEN_LENGTH_SPLIT = 30;
+  var ATGLEN_HALF_LOAD_MAX = 30;   // under this length: half load
+  var ATGLEN_THREE_QUARTER_MIN = 31;
+  var ATGLEN_THREE_QUARTER_MAX = 42; // 31'-42' inclusive: three-quarter load
 
   ORIGINS.forEach(function (o) {
     var rec = ZIP_DATA[o.zip];
@@ -913,15 +927,18 @@
       buffer = ATGLEN_BUFFER;
       longIsland = forceLI || isLongIsland(destRec);
       dropFee = longIsland ? ATGLEN_DROP_LI : ATGLEN_DROP;
-      if (!isNaN(lengthFt) && lengthFt > 0 && lengthFt < ATGLEN_LENGTH_SPLIT) {
-        rateTable = ATGLEN_SHORT_RATE;
-        tierLabel = "Under 30′ rate";
+      if (!isNaN(lengthFt) && lengthFt > 0 && lengthFt < ATGLEN_HALF_LOAD_MAX) {
+        rateTable = ATGLEN_HALF_LOAD_RATE;
+        tierLabel = "Under 30′ · half load";
+      } else if (!isNaN(lengthFt) && lengthFt >= ATGLEN_THREE_QUARTER_MIN && lengthFt <= ATGLEN_THREE_QUARTER_MAX) {
+        rateTable = ATGLEN_THREE_QUARTER_LOAD_RATE;
+        tierLabel = "31′–42′ · three-quarter load";
       } else {
-        rateTable = ATGLEN_LONG_RATE;
-        tierLabel = "30′+ rate";
+        rateTable = ATGLEN_FULL_LOAD_RATE;
+        tierLabel = "Full load rate";
       }
       if (isNaN(lengthFt) || lengthFt <= 0) {
-        note = "Enter the building length to confirm the under-30′ vs. 30′+ rate — currently priced at the 30′+ rate by default.";
+        note = "Enter the building length to confirm the half / three-quarter / full load rate — currently priced at the full-load rate by default.";
       }
     } else {
       buffer = STANDARD_BUFFER;
