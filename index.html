@@ -785,7 +785,12 @@
   }
 
   function money(n) {
-    return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return "$" + Math.round(n).toLocaleString("en-US");
+  }
+  function rateMoney(n) {
+    var rounded = Math.round(n * 100) / 100;
+    var opts = (rounded % 1 !== 0) ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : {};
+    return "$" + rounded.toLocaleString("en-US", opts);
   }
   function miles(n) {
     return n.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " mi";
@@ -876,7 +881,7 @@
     }
     html += ledgerRow("Location buffer", "+ " + miles(data.buffer), true);
     html += ledgerRow("Billed miles", miles(data.billedMiles), false);
-    html += ledgerRow("Rate for " + data.width + "′ wide", money(data.rate) + " / mile", false);
+    html += ledgerRow("Rate for " + data.width + "′ wide", rateMoney(data.rate) + " / mile", false);
     if (data.minApplied) {
       html += ledgerRow("Minimum mileage cost applied", money(data.minMileageCost), true);
     }
@@ -1145,7 +1150,7 @@
     html += '<div class="route-node"><div class="k">Mileage From</div><div class="v">' + data.mileOriginName + '</div></div>';
     html += '<div class="route-arrow">&#8594;</div>';
     html += '<div class="route-node"><div class="k">To</div><div class="v">' + data.destLabel + '</div></div>';
-    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Built out of Mooresville (+$" + OH_OUT_OF_SHOP_FEE + ")" : "Built at shop") + '</span>';
+    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Built out of Mooresville (+$" + OH_OUT_OF_SHOP_FEE + ")" : "Billed from shop") + '</span>';
     html += '</div>';
     html += '<div class="route-line" style="border-top:none; padding-top:0;">';
     html += '<div class="route-node"><div class="k">Barn Length</div><div class="v">' + data.length + ' ft</div></div>';
