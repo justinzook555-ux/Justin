@@ -691,15 +691,20 @@
   // doesn't exceed. Atglen no longer splits loads at all, so every Atglen
   // width uses a bracket table; the other shops only bracket-price 6'/8'
   // wide — at $2/mile more per bracket than Atglen's 6'/8' rates.
+  // 6' and 8'-wide always share one rate table (both at Atglen and at the
+  // other shops), so each is defined once and aliased to both widths
+  // rather than duplicated — keeps them from silently drifting apart.
+  var ATGLEN_NARROW_BRACKETS = [[12, 4], [24, 6], [40, 7], [Infinity, 8]];
   var ATGLEN_RATE_BRACKETS = {
-    6:  [[12, 4], [24, 6], [40, 7], [Infinity, 8]],
-    8:  [[12, 4], [24, 6], [40, 7], [Infinity, 8]],
+    6:  ATGLEN_NARROW_BRACKETS,
+    8:  ATGLEN_NARROW_BRACKETS,
     10: [[14, 5], [24, 7], [40, 8], [Infinity, 9]],
     12: [[14, 8], [24, 9], [40, 10], [Infinity, 12]]
   };
+  var STANDARD_NARROW_BRACKETS = [[12, 6], [24, 8], [40, 9], [Infinity, 10]];
   var STANDARD_NARROW_RATE_BRACKETS = {
-    6: [[12, 6], [24, 8], [40, 9], [Infinity, 10]],
-    8: [[12, 6], [24, 8], [40, 9], [Infinity, 10]]
+    6: STANDARD_NARROW_BRACKETS,
+    8: STANDARD_NARROW_BRACKETS
   };
   function bracketRate(brackets, length) {
     for (var i = 0; i < brackets.length; i++) {
@@ -930,7 +935,7 @@
 
     var overhangData = null;
     if (addOverhangCheckbox.checked) {
-      overhangData = buildOverhangData(origin, destZip, destRec, manualMiles, circuity);
+      overhangData = buildOverhangData(origin, destRec, manualMiles, circuity, lengthFt);
       if (overhangData === null) return; // buildOverhangData already called showError
     }
 
@@ -1055,8 +1060,11 @@
   // Shares the main quote's origin/destination/manual-mileage/circuity —
   // except out of Greenwood, SC, where overhang mileage always comes from
   // Mooresville, NC instead, and is always auto-estimated from the ZIP.
-  function buildOverhangData(origin, destZip, destRec, manualMiles, circuity) {
-    var length = parseInt(document.getElementById("lengthFt").value, 10);
+  function buildOverhangData(origin, destRec, manualMiles, circuity, lengthFt) {
+    // Rounded (not truncated) so a fractional entry like "30.5" prices the
+    // overhang the same length it displays in the shipping quote above,
+    // instead of silently truncating to 30.
+    var length = isNaN(lengthFt) ? NaN : Math.round(lengthFt);
 
     var priceKey, mileRate, label, note;
     if (ohSize === "4") {
