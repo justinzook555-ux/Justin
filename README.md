@@ -54,16 +54,24 @@ the per-mile rate for its width and building-length bracket:
 (10′ and 12′-wide use 14 ft, not 12 ft, as the first bracket's ceiling —
 see Assumptions below.)
 
-- +50 mile buffer added to the estimated distance
-- $250 flat drop fee — **$750** if the destination is Long Island, NY (Nassau or Suffolk County)
+**Atglen mileage bands** (based on driving distance, not straight-line):
+- **Under 50 miles**: flat **$250** minimum shipping charge — no separate
+  mileage cost, mile buffer, or drop fee on top of it.
+- **50–100 miles**: normal rate × miles, **no mile buffer**, plus the $250
+  drop fee ($750 to Long Island, NY).
+- **Over 100 miles**: normal rate × miles **plus a 50-mile buffer**, plus
+  the $250 drop fee ($750 to Long Island, NY).
 
-`total = max(rate × billed miles, minimum mileage cost) + drop fee`
+`total = 250                                   if driving miles < 50
+       = (rate × miles) + drop fee             if 50 ≤ driving miles ≤ 100
+       = (rate × (miles + 50)) + drop fee       if driving miles > 100`
 
-**Minimum mileage cost** (a floor for short-haul deliveries): if the
-calculated mileage cost falls below this amount, the minimum is billed
-instead — the drop fee is still added on top as normal.
-- **$750** for Greenwood SC, Clarkson KY, Powell WY, and Mill Hall PA
-- **$250** for Atglen, PA
+**Standard tier minimum mileage cost** (a floor for short-haul
+deliveries out of Greenwood SC, Clarkson KY, Powell WY, and Mill Hall
+PA): **$750** — if the calculated mileage cost (rate × billed miles)
+falls below this, the minimum is billed instead and the $500 drop fee
+is still added on top as normal. Atglen no longer uses this mechanism;
+its short-haul floor is the flat $250 charge under 50 miles above.
 
 ## Distance estimate
 
@@ -107,9 +115,14 @@ checked against Nassau/Suffolk, NY — with no manual checkbox or override.
 - Building Length is required whenever the rate is bracket-priced: Atglen
   at any width, or 6′/8′-wide from any shop. It's unused (and optional)
   for 10′/12′/14′-wide outside Atglen.
-- The minimum mileage cost applies to the *mileage cost* line only (rate ×
-  billed miles), not the total — the drop fee (and Long Island surcharge)
-  is always added on top after the minimum is applied.
+- The standard-tier minimum mileage cost applies to the *mileage cost*
+  line only (rate × billed miles), not the total — the drop fee (and
+  Long Island surcharge) is always added on top after the minimum is
+  applied. Atglen's under-50-mile flat fee is different: it replaces the
+  *entire* total (mileage cost and drop fee both), since it's a flat
+  minimum shipping charge rather than a floor on one line item.
+- The "over 100 miles" buffer condition is strict: exactly 100 miles gets
+  no buffer, 100.1+ miles does.
 - ZIP-to-coordinate data covers ~42,000 US ZIP codes; a destination ZIP not
   in the table will prompt for manual mileage entry instead of blocking the
   quote.

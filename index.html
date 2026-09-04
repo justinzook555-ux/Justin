@@ -600,7 +600,7 @@
         <div class="row"><span class="label">13&ndash;24 ft</span><span>$6 / mile</span></div>
         <div class="row"><span class="label">25&ndash;40 ft</span><span>$7 / mile</span></div>
         <div class="row"><span class="label">41 ft and over</span><span>$8 / mile</span></div>
-        <div class="row"><span class="label">Mile buffer</span><span>+50 mi</span></div>
+        <div class="row"><span class="label">Mile buffer</span><span>+50 mi (over 100 mi only)</span></div>
         <div class="row"><span class="label">Drop fee</span><span>$250 ($750 to Long Island, NY)</span></div>
       </div>
       <div class="rate-card">
@@ -609,7 +609,7 @@
         <div class="row"><span class="label">15&ndash;24 ft</span><span>$7 / mile</span></div>
         <div class="row"><span class="label">25&ndash;40 ft</span><span>$8 / mile</span></div>
         <div class="row"><span class="label">41 ft and over</span><span>$9 / mile</span></div>
-        <div class="row"><span class="label">Mile buffer</span><span>+50 mi</span></div>
+        <div class="row"><span class="label">Mile buffer</span><span>+50 mi (over 100 mi only)</span></div>
         <div class="row"><span class="label">Drop fee</span><span>$250 ($750 to Long Island, NY)</span></div>
       </div>
       <div class="rate-card">
@@ -618,12 +618,15 @@
         <div class="row"><span class="label">15&ndash;24 ft</span><span>$9 / mile</span></div>
         <div class="row"><span class="label">25&ndash;40 ft</span><span>$10 / mile</span></div>
         <div class="row"><span class="label">41 ft and over</span><span>$12 / mile</span></div>
-        <div class="row"><span class="label">Mile buffer</span><span>+50 mi</span></div>
+        <div class="row"><span class="label">Mile buffer</span><span>+50 mi (over 100 mi only)</span></div>
         <div class="row"><span class="label">Drop fee</span><span>$250 ($750 to Long Island, NY)</span></div>
       </div>
     </div>
     <div class="note-strip" style="margin: 12px 2px 0;">
-      Atglen no longer splits loads &mdash; every Atglen shipment uses the length-bracket rate above for its width. 6&prime;/8&prime;-wide buildings from every other shop are also length-bracket priced, at $2/mile more per bracket than Atglen&rsquo;s 6&prime;/8&prime; rates &mdash; 10&prime;/12&prime;/14&prime;-wide from those shops stays a flat per-mile rate. Minimum mileage cost: $750 for Greenwood SC, Clarkson KY, Powell WY, and Mill Hall PA; $250 for Atglen, PA. If the calculated mileage cost (rate &times; billed miles) falls below that floor, the minimum is billed instead &mdash; the drop fee is still added on top as normal.
+      Atglen no longer splits loads &mdash; every Atglen shipment uses the length-bracket rate above for its width. 6&prime;/8&prime;-wide buildings from every other shop are also length-bracket priced, at $2/mile more per bracket than Atglen&rsquo;s 6&prime;/8&prime; rates &mdash; 10&prime;/12&prime;/14&prime;-wide from those shops stays a flat per-mile rate. Minimum mileage cost for the other shops (Greenwood SC, Clarkson KY, Powell WY, Mill Hall PA): $750 &mdash; if the calculated mileage cost falls below that floor, the minimum is billed instead, with the drop fee still added on top.
+    </div>
+    <div class="note-strip" style="margin: 8px 2px 0;">
+      <strong>Atglen mileage rules:</strong> under 50 driving miles is a flat <strong>$250</strong> minimum shipping charge (no separate mileage cost, buffer, or drop fee). 50&ndash;100 miles bills the normal rate with no mile buffer. Over 100 miles adds the 50-mile buffer on top.
     </div>
   </section>
 
@@ -682,7 +685,13 @@
   var ATGLEN_DROP = 250;
   var ATGLEN_DROP_LI = 750;
   var MIN_MILEAGE_COST_STANDARD = 750;
-  var MIN_MILEAGE_COST_ATGLEN = 250;
+  // Atglen: under 50 driving miles is a flat minimum shipping charge (no
+  // separate mileage cost, buffer, or drop fee). The 50-mile buffer only
+  // applies once driving distance is over 100 miles; 50-100 miles gets no
+  // buffer at all.
+  var ATGLEN_FLAT_FEE_MAX_MILES = 50;
+  var ATGLEN_FLAT_FEE = 250;
+  var ATGLEN_BUFFER_MIN_MILES = 100;
 
   // Bracket-priced widths (6' & 8' everywhere, plus 10'/12' out of Atglen)
   // don't use a flat per-mile rate — rate depends on width and a
@@ -837,14 +846,20 @@
     } else {
       html += ledgerRow("Distance used", miles(data.drivingMiles), false);
     }
-    html += ledgerRow("Location buffer", "+ " + miles(data.buffer), true);
-    html += ledgerRow("Billed miles", miles(data.billedMiles), false);
-    html += ledgerRow("Rate for " + data.width + "′ wide", rateMoney(data.rate) + " / mile", false);
-    if (data.minApplied) {
-      html += ledgerRow("Minimum mileage cost applied", money(data.minMileageCost), true);
+    if (data.flatFeeApplied) {
+      html += ledgerRow("Flat minimum shipping charge (under 50 mi)", money(data.total), false);
+    } else {
+      if (data.buffer > 0) {
+        html += ledgerRow("Location buffer", "+ " + miles(data.buffer), true);
+      }
+      html += ledgerRow("Billed miles", miles(data.billedMiles), false);
+      html += ledgerRow("Rate for " + data.width + "′ wide", rateMoney(data.rate) + " / mile", false);
+      if (data.minApplied) {
+        html += ledgerRow("Minimum mileage cost applied", money(data.minMileageCost), true);
+      }
+      html += ledgerRow("Mileage cost", money(data.mileageCost), false);
+      html += ledgerRow("Drop fee" + (data.longIsland ? " (Long Island, NY)" : ""), money(data.dropFee), false);
     }
-    html += ledgerRow("Mileage cost", money(data.mileageCost), false);
-    html += ledgerRow("Drop fee" + (data.longIsland ? " (Long Island, NY)" : ""), money(data.dropFee), false);
     html += '</div>';
 
     html += '<div class="ledger">';
@@ -896,17 +911,38 @@
     var usedManual = manualMiles !== null;
 
     var buffer, dropFee, rate, tierLabel, note, longIsland;
+    var billedMiles, mileageCost, minApplied, minMileageCost, total;
+    var flatFeeApplied = false;
 
     if (origin.tier === "atglen") {
-      buffer = ATGLEN_BUFFER;
       longIsland = isLongIsland(destRec);
-      dropFee = longIsland ? ATGLEN_DROP_LI : ATGLEN_DROP;
       if (isNaN(lengthFt) || lengthFt <= 0) {
         showError("Enter the building length to price Atglen shipping — the rate depends on it.");
         return;
       }
       rate = bracketRate(ATGLEN_RATE_BRACKETS[selectedWidth], lengthFt);
       tierLabel = lengthFt + "′ length bracket";
+
+      if (drivingMiles < ATGLEN_FLAT_FEE_MAX_MILES) {
+        // Under 50 miles: flat minimum shipping charge, no separate
+        // mileage cost, buffer, or drop fee.
+        flatFeeApplied = true;
+        buffer = 0;
+        dropFee = 0;
+        billedMiles = drivingMiles;
+        mileageCost = 0;
+        total = ATGLEN_FLAT_FEE;
+      } else {
+        // 50-100 miles: no buffer. Over 100 miles: 50-mile buffer applies.
+        buffer = drivingMiles > ATGLEN_BUFFER_MIN_MILES ? ATGLEN_BUFFER : 0;
+        dropFee = longIsland ? ATGLEN_DROP_LI : ATGLEN_DROP;
+        billedMiles = drivingMiles + buffer;
+        mileageCost = rate * billedMiles;
+        total = mileageCost + dropFee;
+        if (buffer === 0) {
+          note = "No mile buffer applies between 50 and 100 miles — the 50-mile buffer only kicks in over 100 miles.";
+        }
+      }
     } else {
       buffer = STANDARD_BUFFER;
       dropFee = STANDARD_DROP;
@@ -922,16 +958,14 @@
         rate = STANDARD_RATE[selectedWidth];
         tierLabel = null;
       }
+
+      billedMiles = drivingMiles + buffer;
+      mileageCost = rate * billedMiles;
+      minMileageCost = MIN_MILEAGE_COST_STANDARD;
+      minApplied = mileageCost < minMileageCost;
+      if (minApplied) mileageCost = minMileageCost;
+      total = mileageCost + dropFee;
     }
-
-    var billedMiles = drivingMiles + buffer;
-    var mileageCost = rate * billedMiles;
-
-    var minMileageCost = origin.tier === "atglen" ? MIN_MILEAGE_COST_ATGLEN : MIN_MILEAGE_COST_STANDARD;
-    var minApplied = mileageCost < minMileageCost;
-    if (minApplied) mileageCost = minMileageCost;
-
-    var total = mileageCost + dropFee;
 
     var overhangData = null;
     if (addOverhangCheckbox.checked) {
@@ -958,6 +992,7 @@
       tierLabel: tierLabel,
       longIsland: longIsland,
       note: note,
+      flatFeeApplied: flatFeeApplied,
       overhang: overhangData
     });
   });
