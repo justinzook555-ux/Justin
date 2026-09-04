@@ -545,12 +545,12 @@
           <div class="field">
             <label for="manualMiles">Manual one-way mileage (optional)</label>
             <input type="number" id="manualMiles" min="0" step="1" placeholder="Leave blank to auto-estimate from ZIP codes" />
-            <div class="hint">Overrides Google Maps / the ZIP-based estimate below with an exact number, e.g. from a mapping tool. The location's mile buffer is still added on top. For an overhang shipped out of Greenwood, mileage is always looked up separately from Mooresville, NC and does not use this override.</div>
+            <div class="hint">Overrides the routed / ZIP-based estimate below with an exact number, e.g. from a mapping tool. The location's mile buffer is still added on top. For an overhang shipped out of Greenwood, mileage is always looked up separately from Mooresville, NC and does not use this override.</div>
           </div>
           <div class="field">
             <label for="circuity">Road-circuity multiplier</label>
             <input type="number" id="circuity" min="1" step="0.01" value="1.25" />
-            <div class="hint">Only used as a fallback when Google Maps isn&rsquo;t available (no API key configured, or a lookup fails) &mdash; converts straight-line ZIP-to-ZIP distance into an estimated driving distance. 1.25 is a reasonable rural/interstate default.</div>
+            <div class="hint">Only used as a fallback when live routing isn&rsquo;t available (no API key configured, or a lookup fails) &mdash; converts straight-line ZIP-to-ZIP distance into an estimated driving distance. 1.25 is a reasonable rural/interstate default.</div>
           </div>
         </details>
 
@@ -655,7 +655,7 @@
   </details>
 
   <footer class="foot">
-    Mileage uses live Google Maps driving distance when a Google Maps API key is configured; otherwise it falls back to an estimate from ZIP-code coordinates (great-circle distance &times; road-circuity multiplier). Use the manual mileage field for an exact override either way. The same logic applies to an added overhang's mileage.
+    Mileage uses live OpenRouteService driving distance when an API key is configured; otherwise it falls back to an estimate from ZIP-code coordinates (great-circle distance &times; road-circuity multiplier). Use the manual mileage field for an exact override either way. The same logic applies to an added overhang's mileage.
   </footer>
 
 </div>
@@ -740,92 +740,70 @@
   }
 
   // =====================================================================
-  // Google Maps Distance Matrix — optional exact driving mileage.
+  // OpenRouteService Matrix API — optional exact driving mileage.
   //
-  // Paste a Google Maps Platform API key below to switch from the
+  // Paste a free OpenRouteService API key below to switch from the
   // straight-line-x-circuity estimate to real routed driving distance.
   // Leave it blank and the calculator works exactly as before (estimate
   // only) -- nothing else needs to change.
   //
-  // Getting a key (one-time setup in Google Cloud Console):
-  //   1. console.cloud.google.com -> create/select a project.
-  //   2. APIs & Services -> Library -> enable "Maps JavaScript API" and
-  //      "Distance Matrix API".
-  //   3. APIs & Services -> Credentials -> Create Credentials -> API key.
-  //   4. Restrict it (required -- this repo is public):
-  //        Application restrictions -> HTTP referrers -> add your
-  //        GitHub Pages URL, e.g. https://justinzook555-ux.github.io/*
-  //        API restrictions -> restrict key -> Maps JavaScript API,
-  //        Distance Matrix API only.
-  //   5. Billing -> Budgets & Alerts -> set a low budget alert as a backstop.
-  //   6. Paste the key below and push. Google gives ~$200/month free
-  //      usage, which covers roughly 40,000 lookups before anything bills.
+  // Getting a key (no billing account or credit card required):
+  //   1. openrouteservice.org/dev/#/signup -> create a free account.
+  //   2. Dashboard -> Request a token -> Standard (free) -> name it
+  //      anything (e.g. "shipping-calculator") -> create.
+  //   3. Copy the token it gives you and paste it below, then push.
+  // Free tier: 2,000 requests/day, 40/minute -- comfortably enough for a
+  // shipping calculator doing quotes.
   // =====================================================================
-  var GOOGLE_MAPS_API_KEY = "";
+  var ORS_API_KEY = "";
+  var ORS_PROVIDER_NAME = "OpenRouteService";
 
-  var googleMapsLoadPromise = null;
-  function loadGoogleMaps() {
-    if (!GOOGLE_MAPS_API_KEY) return Promise.resolve(false);
-    if (googleMapsLoadPromise) return googleMapsLoadPromise;
-    googleMapsLoadPromise = new Promise(function (resolve) {
-      var script = document.createElement("script");
-      script.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(GOOGLE_MAPS_API_KEY);
-      script.onload = function () {
-        resolve(!!(window.google && google.maps && google.maps.DistanceMatrixService));
-      };
-      script.onerror = function () { resolve(false); };
-      document.head.appendChild(script);
-    });
-    return googleMapsLoadPromise;
-  }
-
-  var distanceMatrixService = null;
-  // Resolves to a driving-mile number, or null if Google couldn't be used
-  // (no key, script failed to load, quota/network error, or no route found)
+  // Resolves to a driving-mile number, or null if the lookup couldn't be
+  // used (no key, network/quota error, bad response, or no route found)
   // -- callers fall back to the straight-line estimate in that case.
-  function googleDrivingMiles(originLat, originLng, destLat, destLng) {
-    return loadGoogleMaps().then(function (ready) {
-      if (!ready) return null;
-      if (!distanceMatrixService) distanceMatrixService = new google.maps.DistanceMatrixService();
-      return new Promise(function (resolve) {
-        distanceMatrixService.getDistanceMatrix({
-          origins: [{ lat: originLat, lng: originLng }],
-          destinations: [{ lat: destLat, lng: destLng }],
-          travelMode: google.maps.TravelMode.DRIVING,
-          unitSystem: google.maps.UnitSystem.IMPERIAL
-        }, function (response, status) {
-          try {
-            if (status !== "OK") { resolve(null); return; }
-            var el = response.rows[0].elements[0];
-            if (el.status !== "OK") { resolve(null); return; }
-            resolve(el.distance.value * 0.000621371); // meters -> miles
-          } catch (e) {
-            resolve(null);
-          }
-        });
-      });
+  // ORS takes [longitude, latitude] order (GeoJSON convention) -- the
+  // opposite of how this file stores coordinates everywhere else.
+  function orsDrivingMiles(originLat, originLng, destLat, destLng) {
+    if (!ORS_API_KEY) return Promise.resolve(null);
+    return fetch("https://api.openrouteservice.org/v2/matrix/driving-car", {
+      method: "POST",
+      headers: {
+        "Authorization": ORS_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        locations: [[originLng, originLat], [destLng, destLat]],
+        metrics: ["distance"],
+        units: "mi"
+      })
+    }).then(function (res) {
+      return res.ok ? res.json() : null;
+    }).then(function (data) {
+      if (!data || !data.distances || !data.distances[0]) return null;
+      var d = data.distances[0][1];
+      return (typeof d === "number" && d > 0) ? d : null;
     }).catch(function () { return null; });
   }
 
   // Shared mileage resolver for both the shipping leg and the overhang
-  // leg: manual entry wins if given, otherwise tries Google (when a key
-  // is configured and a destination ZIP resolved), otherwise falls back
-  // to the straight-line x circuity estimate. Always resolves (never
-  // rejects) so callers don't need their own try/catch.
+  // leg: manual entry wins if given, otherwise tries OpenRouteService
+  // (when a key is configured and a destination ZIP resolved), otherwise
+  // falls back to the straight-line x circuity estimate. Always resolves
+  // (never rejects) so callers don't need their own try/catch.
   function resolveDrivingMiles(originLat, originLng, destRec, manualMiles, circuity) {
     var straightLine = destRec ? haversineMiles(originLat, originLng, destRec[0], destRec[1]) : 0;
     if (manualMiles !== null) {
-      return Promise.resolve({ drivingMiles: manualMiles, straightLine: straightLine, usedManual: true, usedGoogle: false });
+      return Promise.resolve({ drivingMiles: manualMiles, straightLine: straightLine, usedManual: true, usedRouting: false });
     }
-    if (destRec && GOOGLE_MAPS_API_KEY) {
-      return googleDrivingMiles(originLat, originLng, destRec[0], destRec[1]).then(function (miles) {
+    if (destRec && ORS_API_KEY) {
+      return orsDrivingMiles(originLat, originLng, destRec[0], destRec[1]).then(function (miles) {
         if (miles != null) {
-          return { drivingMiles: miles, straightLine: straightLine, usedManual: false, usedGoogle: true };
+          return { drivingMiles: miles, straightLine: straightLine, usedManual: false, usedRouting: true };
         }
-        return { drivingMiles: straightLine * circuity, straightLine: straightLine, usedManual: false, usedGoogle: false };
+        return { drivingMiles: straightLine * circuity, straightLine: straightLine, usedManual: false, usedRouting: false };
       });
     }
-    return Promise.resolve({ drivingMiles: straightLine * circuity, straightLine: straightLine, usedManual: false, usedGoogle: false });
+    return Promise.resolve({ drivingMiles: straightLine * circuity, straightLine: straightLine, usedManual: false, usedRouting: false });
   }
 
   function money(n) {
@@ -930,8 +908,8 @@
     html += '<div class="ledger">';
     if (data.usedManual) {
       html += ledgerRow("Manual mileage entered", miles(data.drivingMiles), false);
-    } else if (data.usedGoogle) {
-      html += ledgerRow("Google Maps driving distance", miles(data.drivingMiles), false);
+    } else if (data.usedRouting) {
+      html += ledgerRow(ORS_PROVIDER_NAME + " driving distance", miles(data.drivingMiles), false);
     } else {
       html += ledgerRow("Straight-line distance", miles(data.straightLine), true);
       html += ledgerRow("Road-circuity multiplier", "&times; " + data.circuity.toFixed(2), true);
@@ -1098,7 +1076,7 @@
         circuity: circuity,
         drivingMiles: drivingMiles,
         usedManual: shipMileage.usedManual,
-        usedGoogle: shipMileage.usedGoogle,
+        usedRouting: shipMileage.usedRouting,
         buffer: buffer,
         billedMiles: billedMiles,
         width: selectedWidth,
@@ -1223,7 +1201,7 @@
   // Validates the overhang's size/length against the price table and
   // returns its pricing info (no mileage yet), or null on error (calls
   // showError). Kept synchronous and separate from mileage resolution so
-  // bad inputs are caught before spending an async Google Maps lookup.
+  // bad inputs are caught before spending an async routing lookup.
   function overhangPricingInfo(lengthFt) {
     // Rounded (not truncated) so a fractional entry like "30.5" prices the
     // overhang the same length it displays in the shipping quote above,
@@ -1283,7 +1261,7 @@
       straightLine: mileageResult.straightLine,
       circuity: circuity,
       drivingMiles: mileageResult.drivingMiles,
-      usedGoogle: mileageResult.usedGoogle,
+      usedRouting: mileageResult.usedRouting,
       buffer: OH_BUFFER,
       billedMiles: billedMiles,
       usedManual: mileageResult.usedManual,
@@ -1308,8 +1286,8 @@
     html += ledgerRow("Base installed price", money(data.basePrice), false);
     if (data.usedManual) {
       html += ledgerRow("Manual mileage from " + data.mileOriginName, miles(data.drivingMiles), true);
-    } else if (data.usedGoogle) {
-      html += ledgerRow("Google Maps driving distance from " + data.mileOriginName, miles(data.drivingMiles), true);
+    } else if (data.usedRouting) {
+      html += ledgerRow(ORS_PROVIDER_NAME + " driving distance from " + data.mileOriginName, miles(data.drivingMiles), true);
     } else {
       html += ledgerRow("Straight-line distance from " + data.mileOriginName, miles(data.straightLine), true);
       html += ledgerRow("Road-circuity multiplier", "&times; " + data.circuity.toFixed(2), true);

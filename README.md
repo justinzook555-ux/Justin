@@ -6,47 +6,38 @@ code, building width, and building length — with an optional overhang
 add-on priced and totaled in the same quote.
 
 Open `index.html` directly in any browser — no build step, no server
-required. Mileage uses live Google Maps driving distance when an API key
-is configured (see "Google Maps setup" below); otherwise everything still
-works using a built-in straight-line distance estimate.
+required. Mileage uses live OpenRouteService driving distance when an API
+key is configured (see "OpenRouteService setup" below); otherwise
+everything still works using a built-in straight-line distance estimate.
 
-## Google Maps setup (optional but recommended)
+## OpenRouteService setup (optional, free, no billing account needed)
 
 By default mileage is estimated from ZIP-code coordinates (great-circle
 distance × a 1.25 road-circuity multiplier) — no external service, works
 everywhere. To use exact driving distance instead:
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com) and
-   create (or select) a project.
-2. **APIs & Services → Library** → enable **Maps JavaScript API** and
-   **Distance Matrix API**.
-3. **APIs & Services → Credentials → Create Credentials → API key.**
-4. **Restrict the key** (required — this repo is public, so an
-   unrestricted key would be usable by anyone who finds it):
-   - Application restrictions → **HTTP referrers** → add your GitHub
-     Pages URL, e.g. `https://justinzook555-ux.github.io/*`
-   - API restrictions → restrict key to **Maps JavaScript API** and
-     **Distance Matrix API** only.
-5. **Billing → Budgets & Alerts** → set a low budget alert as a backstop
-   against runaway usage.
-6. Open `index.html`, find `var GOOGLE_MAPS_API_KEY = "";` near the top of
-   the `<script>` block, paste the key between the quotes, and push.
+1. Go to [openrouteservice.org/dev/#/signup](https://openrouteservice.org/dev/#/signup)
+   and create a free account — no credit card required.
+2. In the dashboard, **Request a token** → **Standard (free)** → name it
+   anything (e.g. "shipping-calculator") → create.
+3. Copy the token.
+4. Open `index.html`, find `var ORS_API_KEY = "";` near the top of the
+   `<script>` block, paste the token between the quotes, and push.
 
-Google gives roughly $200 of free usage every month, which covers about
-40,000 distance lookups before anything bills — a shipping calculator
-doing quotes is very unlikely to exceed that.
+Free tier: 2,000 requests/day, 40/minute — comfortably enough for a
+shipping calculator doing quotes.
 
 **If the key is missing, invalid, over quota, or a lookup fails for any
 reason**, the calculator silently falls back to the straight-line
 estimate for that quote — it never blocks or errors out. The quote
-breakdown always shows which method was used ("Google Maps driving
+breakdown always shows which method was used ("OpenRouteService driving
 distance" vs. "Estimated driving distance").
 
 **Note on the Claude Artifact preview link**: the Artifact viewer's
-content security policy blocks scripts from `maps.googleapis.com`, so
-Google Maps mileage only works on the real hosted page (GitHub Pages) or
-the standalone file — the Artifact preview will always show the
-estimate, even with a key configured.
+content security policy blocks outbound network calls to any external
+service, so OpenRouteService mileage only works on the real hosted page
+(GitHub Pages) or the standalone file — the Artifact preview will always
+show the estimate, even with a key configured.
 
 ## Locations
 
@@ -119,8 +110,8 @@ Mileage resolves in this order, for both the shipping leg and an added
 overhang's leg:
 
 1. **Manual mileage** (Advanced), if entered — always wins.
-2. **Google Maps driving distance**, if an API key is configured (see
-   "Google Maps setup" above) and the destination ZIP resolved.
+2. **OpenRouteService driving distance**, if an API key is configured (see
+   "OpenRouteService setup" above) and the destination ZIP resolved.
 3. **Straight-line estimate** from an embedded ZIP-code latitude/longitude
    table, as a fallback: `estimated driving miles = straight-line distance
    × road-circuity multiplier`. The circuity multiplier defaults to
