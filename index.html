@@ -521,7 +521,7 @@
         <div class="field">
           <label for="lengthFt">Building Length (ft)</label>
           <input type="number" id="lengthFt" min="0" step="1" placeholder="e.g. 28" />
-          <div class="hint" id="lengthHint">From Atglen, PA this sets the per-mile rate bracket. If an overhang is added below, this same length also looks up its price (12&prime;&ndash;60&prime;, in 2&prime; steps).</div>
+          <div class="hint" id="lengthHint">Required for Atglen (any width) and for 6&prime;/8&prime;-wide from any shop &mdash; the rate depends on the length bracket. Not used for 10&prime;/12&prime;/14&prime;-wide outside Atglen. If an overhang is added below, this same length also looks up its price (12&prime;&ndash;60&prime;, in 2&prime; steps).</div>
         </div>
 
         <div class="field checkline">
@@ -578,10 +578,19 @@
   <section class="ratesheet">
     <div class="ratesheet-grid">
       <div class="rate-card">
-        <h3>Greenwood SC &middot; Clarkson KY &middot; Powell WY &middot; Mill Hall PA</h3>
+        <h3>Greenwood SC &middot; Clarkson KY &middot; Powell WY &middot; Mill Hall PA &mdash; 10&prime;/12&prime;/14&prime; wide</h3>
         <div class="row"><span class="label">10&prime; wide</span><span>$10 / mile</span></div>
         <div class="row"><span class="label">12&prime; wide</span><span>$12 / mile</span></div>
         <div class="row"><span class="label">14&prime; wide</span><span>$14 / mile</span></div>
+        <div class="row"><span class="label">Mile buffer</span><span>+60 mi</span></div>
+        <div class="row"><span class="label">Drop fee</span><span>$500</span></div>
+      </div>
+      <div class="rate-card">
+        <h3>Greenwood SC &middot; Clarkson KY &middot; Powell WY &middot; Mill Hall PA &mdash; 6&prime; &amp; 8&prime; wide</h3>
+        <div class="row"><span class="label">12 ft and under</span><span>$6 / mile</span></div>
+        <div class="row"><span class="label">13&ndash;24 ft</span><span>$8 / mile</span></div>
+        <div class="row"><span class="label">25&ndash;40 ft</span><span>$9 / mile</span></div>
+        <div class="row"><span class="label">41 ft and over</span><span>$10 / mile</span></div>
         <div class="row"><span class="label">Mile buffer</span><span>+60 mi</span></div>
         <div class="row"><span class="label">Drop fee</span><span>$500</span></div>
       </div>
@@ -614,7 +623,7 @@
       </div>
     </div>
     <div class="note-strip" style="margin: 12px 2px 0;">
-      Atglen no longer splits loads &mdash; every Atglen shipment uses the length-bracket rate above for its width. Minimum mileage cost: $750 for Greenwood SC, Clarkson KY, Powell WY, and Mill Hall PA; $250 for Atglen, PA. If the calculated mileage cost (rate &times; billed miles) falls below that floor, the minimum is billed instead &mdash; the drop fee is still added on top as normal.
+      Atglen no longer splits loads &mdash; every Atglen shipment uses the length-bracket rate above for its width. 6&prime;/8&prime;-wide buildings from every other shop are also length-bracket priced, at $2/mile more per bracket than Atglen&rsquo;s 6&prime;/8&prime; rates &mdash; 10&prime;/12&prime;/14&prime;-wide from those shops stays a flat per-mile rate. Minimum mileage cost: $750 for Greenwood SC, Clarkson KY, Powell WY, and Mill Hall PA; $250 for Atglen, PA. If the calculated mileage cost (rate &times; billed miles) falls below that floor, the minimum is billed instead &mdash; the drop fee is still added on top as normal.
     </div>
   </section>
 
@@ -664,8 +673,9 @@
   ];
 
   var STANDARD_RATE = { 10: 10, 12: 12, 14: 14 };
-  var STANDARD_WIDTHS = [10, 12, 14];
+  var STANDARD_WIDTHS = [6, 8, 10, 12, 14];
   var ATGLEN_WIDTHS = [6, 8, 10, 12];
+  var NARROW_WIDTHS = [6, 8]; // bracket-priced at every shop, not flat like 10/12/14
   var STANDARD_BUFFER = 60;
   var STANDARD_DROP = 500;
   var ATGLEN_BUFFER = 50;
@@ -674,17 +684,24 @@
   var MIN_MILEAGE_COST_STANDARD = 750;
   var MIN_MILEAGE_COST_ATGLEN = 250;
 
-  // Atglen no longer splits loads — rate depends only on width and a length
-  // bracket. Each bracket is [ceiling length in ft, rate per mile]; a
-  // length is billed at the first bracket whose ceiling it doesn't exceed.
+  // Bracket-priced widths (6' & 8' everywhere, plus 10'/12' out of Atglen)
+  // don't use a flat per-mile rate — rate depends on width and a
+  // building-length bracket. Each bracket is [ceiling length in ft, rate
+  // per mile]; a length is billed at the first bracket whose ceiling it
+  // doesn't exceed. Atglen no longer splits loads at all, so every Atglen
+  // width uses a bracket table; the other shops only bracket-price 6'/8'
+  // wide — at $2/mile more per bracket than Atglen's 6'/8' rates.
   var ATGLEN_RATE_BRACKETS = {
     6:  [[12, 4], [24, 6], [40, 7], [Infinity, 8]],
     8:  [[12, 4], [24, 6], [40, 7], [Infinity, 8]],
     10: [[14, 5], [24, 7], [40, 8], [Infinity, 9]],
     12: [[14, 8], [24, 9], [40, 10], [Infinity, 12]]
   };
-  function atglenRate(width, length) {
-    var brackets = ATGLEN_RATE_BRACKETS[width];
+  var STANDARD_NARROW_RATE_BRACKETS = {
+    6: [[12, 6], [24, 8], [40, 9], [Infinity, 10]],
+    8: [[12, 6], [24, 8], [40, 9], [Infinity, 10]]
+  };
+  function bracketRate(brackets, length) {
     for (var i = 0; i < brackets.length; i++) {
       if (length <= brackets[i][0]) return brackets[i][1];
     }
@@ -758,8 +775,8 @@
     });
     var hint = document.getElementById("widthHint");
     hint.textContent = origin.tier === "atglen"
-      ? "Atglen ships 6′, 8′, 10′, and 12′-wide buildings."
-      : "This shop ships 10′, 12′, and 14′-wide buildings.";
+      ? "Atglen ships 6′, 8′, 10′, and 12′-wide buildings — no 14′. Every width prices by length bracket (see below)."
+      : "This shop ships 6′, 8′, 10′, 12′, and 14′-wide buildings. 6′ and 8′ price by length bracket; 10′/12′/14′ are a flat per-mile rate.";
   }
   originSel.addEventListener("change", renderWidthToggle);
   renderWidthToggle();
@@ -883,14 +900,23 @@
         showError("Enter the building length to price Atglen shipping — the rate depends on it.");
         return;
       }
-      rate = atglenRate(selectedWidth, lengthFt);
+      rate = bracketRate(ATGLEN_RATE_BRACKETS[selectedWidth], lengthFt);
       tierLabel = lengthFt + "′ length bracket";
     } else {
       buffer = STANDARD_BUFFER;
       dropFee = STANDARD_DROP;
-      rate = STANDARD_RATE[selectedWidth];
-      tierLabel = null;
       longIsland = false;
+      if (NARROW_WIDTHS.indexOf(selectedWidth) !== -1) {
+        if (isNaN(lengthFt) || lengthFt <= 0) {
+          showError("Enter the building length to price a " + selectedWidth + "′-wide building — the rate depends on it.");
+          return;
+        }
+        rate = bracketRate(STANDARD_NARROW_RATE_BRACKETS[selectedWidth], lengthFt);
+        tierLabel = lengthFt + "′ length bracket";
+      } else {
+        rate = STANDARD_RATE[selectedWidth];
+        tierLabel = null;
+      }
     }
 
     var billedMiles = drivingMiles + buffer;

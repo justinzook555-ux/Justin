@@ -22,13 +22,24 @@ external services required at runtime.
 
 Each shop ships a different set of building widths, shown as the Building
 Width options once that shop is selected:
-- **Greenwood SC, Clarkson KY, Powell WY, Mill Hall PA**: 10′, 12′, 14′-wide
+- **Greenwood SC, Clarkson KY, Powell WY, Mill Hall PA**: 6′, 8′, 10′, 12′, 14′-wide
 - **Atglen, PA**: 6′, 8′, 10′, 12′-wide (no 14′)
 
 **Standard tier** (Greenwood SC, Clarkson KY, Powell WY, Mill Hall PA):
-- $10/mile for 10′-wide, $12/mile for 12′-wide, $14/mile for 14′-wide
+- 10′/12′/14′-wide are a flat per-mile rate: $10/mile, $12/mile, $14/mile
+- 6′/8′-wide are length-bracket priced, like Atglen — see the table below
+  — but at **$2/mile more per bracket** than Atglen's 6′/8′ rates
 - +60 mile buffer added to the estimated distance
 - $500 flat drop fee
+
+**Standard tier 6′/8′-wide length brackets:**
+
+| Building length | 6′ / 8′ wide |
+|---|---|
+| 12 ft and under | $6/mile |
+| 13–24 ft | $8/mile |
+| 25–40 ft | $9/mile |
+| 41 ft and over | $10/mile |
 
 **Atglen tier** — Atglen does not split loads; every shipment prices off
 the per-mile rate for its width and building-length bracket:
@@ -89,6 +100,13 @@ checked against Nassau/Suffolk, NY — with no manual checkbox or override.
 - 14′-wide is no longer offered from Atglen — the new pricing only defined
   6′, 8′, 10′, and 12′-wide, so the Building Width choices for Atglen
   became 6′/8′/10′/12′ instead of 10′/12′/14′.
+- 6′/8′-wide from the other four shops uses the exact same bracket
+  *breakpoints* as Atglen's 6′/8′ table (≤12, 13–24, 25–40, 41+ ft) with
+  every rate $2/mile higher — it does not use Atglen's own mile buffer or
+  drop fee, only its bracket structure.
+- Building Length is required whenever the rate is bracket-priced: Atglen
+  at any width, or 6′/8′-wide from any shop. It's unused (and optional)
+  for 10′/12′/14′-wide outside Atglen.
 - The minimum mileage cost applies to the *mileage cost* line only (rate ×
   billed miles), not the total — the drop fee (and Long Island surcharge)
   is always added on top after the minimum is applied.
