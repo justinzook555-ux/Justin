@@ -545,12 +545,12 @@
           <div class="field">
             <label for="manualMiles">Manual one-way mileage (optional)</label>
             <input type="number" id="manualMiles" min="0" step="1" placeholder="Leave blank to auto-estimate from ZIP codes" />
-            <div class="hint">Overrides the ZIP-based estimate below with an exact number, e.g. from a mapping tool. The location's mile buffer is still added on top. For an overhang shipped out of Greenwood, mileage is always estimated separately from Mooresville, NC and does not use this override.</div>
+            <div class="hint">Overrides Google Maps / the ZIP-based estimate below with an exact number, e.g. from a mapping tool. The location's mile buffer is still added on top. For an overhang shipped out of Greenwood, mileage is always looked up separately from Mooresville, NC and does not use this override.</div>
           </div>
           <div class="field">
             <label for="circuity">Road-circuity multiplier</label>
             <input type="number" id="circuity" min="1" step="0.01" value="1.25" />
-            <div class="hint">Converts straight-line ZIP-to-ZIP distance into an estimated driving distance. 1.25 is a reasonable rural/interstate default &mdash; raise it for mountainous or indirect routes.</div>
+            <div class="hint">Only used as a fallback when Google Maps isn&rsquo;t available (no API key configured, or a lookup fails) &mdash; converts straight-line ZIP-to-ZIP distance into an estimated driving distance. 1.25 is a reasonable rural/interstate default.</div>
           </div>
         </details>
 
@@ -655,7 +655,7 @@
   </details>
 
   <footer class="foot">
-    Mileage is estimated from ZIP-code coordinates (great-circle distance &times; road-circuity multiplier), not a live routing API &mdash; use the manual mileage field for an exact quote. The same estimate method is used for an added overhang's mileage.
+    Mileage uses live Google Maps driving distance when a Google Maps API key is configured; otherwise it falls back to an estimate from ZIP-code coordinates (great-circle distance &times; road-circuity multiplier). Use the manual mileage field for an exact override either way. The same logic applies to an added overhang's mileage.
   </footer>
 
 </div>
@@ -737,6 +737,95 @@
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  }
+
+  // =====================================================================
+  // Google Maps Distance Matrix — optional exact driving mileage.
+  //
+  // Paste a Google Maps Platform API key below to switch from the
+  // straight-line-x-circuity estimate to real routed driving distance.
+  // Leave it blank and the calculator works exactly as before (estimate
+  // only) -- nothing else needs to change.
+  //
+  // Getting a key (one-time setup in Google Cloud Console):
+  //   1. console.cloud.google.com -> create/select a project.
+  //   2. APIs & Services -> Library -> enable "Maps JavaScript API" and
+  //      "Distance Matrix API".
+  //   3. APIs & Services -> Credentials -> Create Credentials -> API key.
+  //   4. Restrict it (required -- this repo is public):
+  //        Application restrictions -> HTTP referrers -> add your
+  //        GitHub Pages URL, e.g. https://justinzook555-ux.github.io/*
+  //        API restrictions -> restrict key -> Maps JavaScript API,
+  //        Distance Matrix API only.
+  //   5. Billing -> Budgets & Alerts -> set a low budget alert as a backstop.
+  //   6. Paste the key below and push. Google gives ~$200/month free
+  //      usage, which covers roughly 40,000 lookups before anything bills.
+  // =====================================================================
+  var GOOGLE_MAPS_API_KEY = "";
+
+  var googleMapsLoadPromise = null;
+  function loadGoogleMaps() {
+    if (!GOOGLE_MAPS_API_KEY) return Promise.resolve(false);
+    if (googleMapsLoadPromise) return googleMapsLoadPromise;
+    googleMapsLoadPromise = new Promise(function (resolve) {
+      var script = document.createElement("script");
+      script.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(GOOGLE_MAPS_API_KEY);
+      script.onload = function () {
+        resolve(!!(window.google && google.maps && google.maps.DistanceMatrixService));
+      };
+      script.onerror = function () { resolve(false); };
+      document.head.appendChild(script);
+    });
+    return googleMapsLoadPromise;
+  }
+
+  var distanceMatrixService = null;
+  // Resolves to a driving-mile number, or null if Google couldn't be used
+  // (no key, script failed to load, quota/network error, or no route found)
+  // -- callers fall back to the straight-line estimate in that case.
+  function googleDrivingMiles(originLat, originLng, destLat, destLng) {
+    return loadGoogleMaps().then(function (ready) {
+      if (!ready) return null;
+      if (!distanceMatrixService) distanceMatrixService = new google.maps.DistanceMatrixService();
+      return new Promise(function (resolve) {
+        distanceMatrixService.getDistanceMatrix({
+          origins: [{ lat: originLat, lng: originLng }],
+          destinations: [{ lat: destLat, lng: destLng }],
+          travelMode: google.maps.TravelMode.DRIVING,
+          unitSystem: google.maps.UnitSystem.IMPERIAL
+        }, function (response, status) {
+          try {
+            if (status !== "OK") { resolve(null); return; }
+            var el = response.rows[0].elements[0];
+            if (el.status !== "OK") { resolve(null); return; }
+            resolve(el.distance.value * 0.000621371); // meters -> miles
+          } catch (e) {
+            resolve(null);
+          }
+        });
+      });
+    }).catch(function () { return null; });
+  }
+
+  // Shared mileage resolver for both the shipping leg and the overhang
+  // leg: manual entry wins if given, otherwise tries Google (when a key
+  // is configured and a destination ZIP resolved), otherwise falls back
+  // to the straight-line x circuity estimate. Always resolves (never
+  // rejects) so callers don't need their own try/catch.
+  function resolveDrivingMiles(originLat, originLng, destRec, manualMiles, circuity) {
+    var straightLine = destRec ? haversineMiles(originLat, originLng, destRec[0], destRec[1]) : 0;
+    if (manualMiles !== null) {
+      return Promise.resolve({ drivingMiles: manualMiles, straightLine: straightLine, usedManual: true, usedGoogle: false });
+    }
+    if (destRec && GOOGLE_MAPS_API_KEY) {
+      return googleDrivingMiles(originLat, originLng, destRec[0], destRec[1]).then(function (miles) {
+        if (miles != null) {
+          return { drivingMiles: miles, straightLine: straightLine, usedManual: false, usedGoogle: true };
+        }
+        return { drivingMiles: straightLine * circuity, straightLine: straightLine, usedManual: false, usedGoogle: false };
+      });
+    }
+    return Promise.resolve({ drivingMiles: straightLine * circuity, straightLine: straightLine, usedManual: false, usedGoogle: false });
   }
 
   function money(n) {
@@ -839,12 +928,14 @@
     html += '</div>';
 
     html += '<div class="ledger">';
-    html += ledgerRow(data.usedManual ? "Manual mileage entered" : "Straight-line distance", miles(data.straightLine), true);
-    if (!data.usedManual) {
+    if (data.usedManual) {
+      html += ledgerRow("Manual mileage entered", miles(data.drivingMiles), false);
+    } else if (data.usedGoogle) {
+      html += ledgerRow("Google Maps driving distance", miles(data.drivingMiles), false);
+    } else {
+      html += ledgerRow("Straight-line distance", miles(data.straightLine), true);
       html += ledgerRow("Road-circuity multiplier", "&times; " + data.circuity.toFixed(2), true);
       html += ledgerRow("Estimated driving distance", miles(data.drivingMiles), false);
-    } else {
-      html += ledgerRow("Distance used", miles(data.drivingMiles), false);
     }
     if (data.flatFeeApplied) {
       html += ledgerRow("Flat minimum shipping charge (under 50 mi)", money(data.total), false);
@@ -882,7 +973,13 @@
     return '<div class="ledger-row' + (sub ? ' sub' : '') + '"><span class="label">' + label + '</span><span class="val">' + val + '</span></div>';
   }
 
-  document.getElementById("calcBtn").addEventListener("click", function () {
+  var calcBtnEl = document.getElementById("calcBtn");
+  function setCalculating(isCalculating) {
+    calcBtnEl.disabled = isCalculating;
+    calcBtnEl.textContent = isCalculating ? "Calculating…" : "Calculate Quote";
+  }
+
+  calcBtnEl.addEventListener("click", function () {
     clearError();
 
     var origin = ORIGINS.filter(function (o) { return o.id === originSel.value; })[0];
@@ -906,94 +1003,122 @@
       return;
     }
 
-    var straightLine = destRec ? haversineMiles(origin.lat, origin.lon, destRec[0], destRec[1]) : 0;
-    var drivingMiles = manualMiles !== null ? manualMiles : straightLine * circuity;
-    var usedManual = manualMiles !== null;
-
-    var buffer, dropFee, rate, tierLabel, note, longIsland;
-    var billedMiles, mileageCost, minApplied, minMileageCost, total;
-    var flatFeeApplied = false;
-
+    var rate, tierLabel;
     if (origin.tier === "atglen") {
-      longIsland = isLongIsland(destRec);
       if (isNaN(lengthFt) || lengthFt <= 0) {
         showError("Enter the building length to price Atglen shipping — the rate depends on it.");
         return;
       }
       rate = bracketRate(ATGLEN_RATE_BRACKETS[selectedWidth], lengthFt);
       tierLabel = lengthFt + "′ length bracket";
+    } else if (NARROW_WIDTHS.indexOf(selectedWidth) !== -1) {
+      if (isNaN(lengthFt) || lengthFt <= 0) {
+        showError("Enter the building length to price a " + selectedWidth + "′-wide building — the rate depends on it.");
+        return;
+      }
+      rate = bracketRate(STANDARD_NARROW_RATE_BRACKETS[selectedWidth], lengthFt);
+      tierLabel = lengthFt + "′ length bracket";
+    } else {
+      rate = STANDARD_RATE[selectedWidth];
+      tierLabel = null;
+    }
 
-      if (drivingMiles < ATGLEN_FLAT_FEE_MAX_MILES) {
-        // Under 50 miles: flat minimum shipping charge, no separate
-        // mileage cost, buffer, or drop fee.
-        flatFeeApplied = true;
-        buffer = 0;
-        dropFee = 0;
-        billedMiles = drivingMiles;
-        mileageCost = 0;
-        total = ATGLEN_FLAT_FEE;
+    var overhangPricing = null;
+    var mileOrigin = null;
+    var overhangOutOfShop = false;
+    if (addOverhangCheckbox.checked) {
+      overhangPricing = overhangPricingInfo(lengthFt);
+      if (overhangPricing === null) return;
+      mileOrigin = ohMileageOrigin(origin.id);
+      overhangOutOfShop = origin.id === "greenwood";
+      if (overhangOutOfShop && !destRec) {
+        showError("That destination ZIP wasn't found in the lookup table, so overhang mileage from Mooresville, NC can't be auto-estimated. Use a ZIP in the lookup table, or remove the overhang add-on.");
+        return;
+      }
+    }
+
+    setCalculating(true);
+
+    var shippingMilesPromise = resolveDrivingMiles(origin.lat, origin.lon, destRec, manualMiles, circuity);
+    var overhangMilesPromise = overhangPricing
+      ? resolveDrivingMiles(mileOrigin.lat, mileOrigin.lon, destRec, overhangOutOfShop ? null : manualMiles, circuity)
+      : Promise.resolve(null);
+
+    Promise.all([shippingMilesPromise, overhangMilesPromise]).then(function (results) {
+      var shipMileage = results[0];
+      var ohMileageResult = results[1];
+      var drivingMiles = shipMileage.drivingMiles;
+
+      var buffer, dropFee, note, longIsland;
+      var billedMiles, mileageCost, minApplied, minMileageCost, total;
+      var flatFeeApplied = false;
+
+      if (origin.tier === "atglen") {
+        longIsland = isLongIsland(destRec);
+        if (drivingMiles < ATGLEN_FLAT_FEE_MAX_MILES) {
+          // Under 50 miles: flat minimum shipping charge, no separate
+          // mileage cost, buffer, or drop fee.
+          flatFeeApplied = true;
+          buffer = 0;
+          dropFee = 0;
+          billedMiles = drivingMiles;
+          mileageCost = 0;
+          total = ATGLEN_FLAT_FEE;
+        } else {
+          // 50-100 miles: no buffer. Over 100 miles: 50-mile buffer applies.
+          buffer = drivingMiles > ATGLEN_BUFFER_MIN_MILES ? ATGLEN_BUFFER : 0;
+          dropFee = longIsland ? ATGLEN_DROP_LI : ATGLEN_DROP;
+          billedMiles = drivingMiles + buffer;
+          mileageCost = rate * billedMiles;
+          total = mileageCost + dropFee;
+          if (buffer === 0) {
+            note = "No mile buffer applies between 50 and 100 miles — the 50-mile buffer only kicks in over 100 miles.";
+          }
+        }
       } else {
-        // 50-100 miles: no buffer. Over 100 miles: 50-mile buffer applies.
-        buffer = drivingMiles > ATGLEN_BUFFER_MIN_MILES ? ATGLEN_BUFFER : 0;
-        dropFee = longIsland ? ATGLEN_DROP_LI : ATGLEN_DROP;
+        buffer = STANDARD_BUFFER;
+        dropFee = STANDARD_DROP;
+        longIsland = false;
         billedMiles = drivingMiles + buffer;
         mileageCost = rate * billedMiles;
+        minMileageCost = MIN_MILEAGE_COST_STANDARD;
+        minApplied = mileageCost < minMileageCost;
+        if (minApplied) mileageCost = minMileageCost;
         total = mileageCost + dropFee;
-        if (buffer === 0) {
-          note = "No mile buffer applies between 50 and 100 miles — the 50-mile buffer only kicks in over 100 miles.";
-        }
-      }
-    } else {
-      buffer = STANDARD_BUFFER;
-      dropFee = STANDARD_DROP;
-      longIsland = false;
-      if (NARROW_WIDTHS.indexOf(selectedWidth) !== -1) {
-        if (isNaN(lengthFt) || lengthFt <= 0) {
-          showError("Enter the building length to price a " + selectedWidth + "′-wide building — the rate depends on it.");
-          return;
-        }
-        rate = bracketRate(STANDARD_NARROW_RATE_BRACKETS[selectedWidth], lengthFt);
-        tierLabel = lengthFt + "′ length bracket";
-      } else {
-        rate = STANDARD_RATE[selectedWidth];
-        tierLabel = null;
       }
 
-      billedMiles = drivingMiles + buffer;
-      mileageCost = rate * billedMiles;
-      minMileageCost = MIN_MILEAGE_COST_STANDARD;
-      minApplied = mileageCost < minMileageCost;
-      if (minApplied) mileageCost = minMileageCost;
-      total = mileageCost + dropFee;
-    }
+      var overhangData = overhangPricing
+        ? finishOverhangData(overhangPricing, origin, ohMileageResult, circuity)
+        : null;
 
-    var overhangData = null;
-    if (addOverhangCheckbox.checked) {
-      overhangData = buildOverhangData(origin, destRec, manualMiles, circuity, lengthFt);
-      if (overhangData === null) return; // buildOverhangData already called showError
-    }
+      renderResults({
+        originName: origin.name,
+        destLabel: destRec ? (destRec[3] + ", " + destRec[2] + " " + destZip) : (destZip + " (manual mileage)"),
+        straightLine: shipMileage.straightLine,
+        circuity: circuity,
+        drivingMiles: drivingMiles,
+        usedManual: shipMileage.usedManual,
+        usedGoogle: shipMileage.usedGoogle,
+        buffer: buffer,
+        billedMiles: billedMiles,
+        width: selectedWidth,
+        rate: rate,
+        mileageCost: mileageCost,
+        minApplied: minApplied,
+        minMileageCost: minMileageCost,
+        dropFee: dropFee,
+        total: total,
+        tierLabel: tierLabel,
+        longIsland: longIsland,
+        note: note,
+        flatFeeApplied: flatFeeApplied,
+        overhang: overhangData
+      });
 
-    renderResults({
-      originName: origin.name,
-      destLabel: destRec ? (destRec[3] + ", " + destRec[2] + " " + destZip) : (destZip + " (manual mileage)"),
-      straightLine: straightLine,
-      circuity: circuity,
-      drivingMiles: drivingMiles,
-      usedManual: usedManual,
-      buffer: buffer,
-      billedMiles: billedMiles,
-      width: selectedWidth,
-      rate: rate,
-      mileageCost: mileageCost,
-      minApplied: minApplied,
-      minMileageCost: minMileageCost,
-      dropFee: dropFee,
-      total: total,
-      tierLabel: tierLabel,
-      longIsland: longIsland,
-      note: note,
-      flatFeeApplied: flatFeeApplied,
-      overhang: overhangData
+      setCalculating(false);
+    }).catch(function () {
+      setCalculating(false);
+      showError("Something went wrong estimating mileage. Please try again.");
     });
   });
 
@@ -1095,13 +1220,17 @@
   // Shares the main quote's origin/destination/manual-mileage/circuity —
   // except out of Greenwood, SC, where overhang mileage always comes from
   // Mooresville, NC instead, and is always auto-estimated from the ZIP.
-  function buildOverhangData(origin, destRec, manualMiles, circuity, lengthFt) {
+  // Validates the overhang's size/length against the price table and
+  // returns its pricing info (no mileage yet), or null on error (calls
+  // showError). Kept synchronous and separate from mileage resolution so
+  // bad inputs are caught before spending an async Google Maps lookup.
+  function overhangPricingInfo(lengthFt) {
     // Rounded (not truncated) so a fractional entry like "30.5" prices the
     // overhang the same length it displays in the shipping quote above,
     // instead of silently truncating to 30.
     var length = isNaN(lengthFt) ? NaN : Math.round(lengthFt);
 
-    var priceKey, mileRate, label, note;
+    var priceKey, mileRate, label;
     if (ohSize === "4") {
       if (selectedWidth === 10) {
         priceKey = "fixed4";
@@ -1127,44 +1256,37 @@
       return null;
     }
 
+    return { length: length, priceKey: priceKey, mileRate: mileRate, label: label, basePrice: basePrice };
+  }
+
+  // Combines the overhang's pricing info with its already-resolved
+  // mileage (from resolveDrivingMiles) into the final data object for
+  // ohRenderFragment.
+  function finishOverhangData(pricing, origin, mileageResult, circuity) {
     var mileOrigin = ohMileageOrigin(origin.id);
     var outOfShop = origin.id === "greenwood";
+    var billedMiles = mileageResult.drivingMiles + OH_BUFFER;
+    var mileageCost = pricing.mileRate * billedMiles;
+    var total = pricing.basePrice + mileageCost + (outOfShop ? OH_OUT_OF_SHOP_FEE : 0);
 
-    var straightLine, drivingMiles, usedManual;
-    if (!outOfShop) {
-      straightLine = destRec ? haversineMiles(mileOrigin.lat, mileOrigin.lon, destRec[0], destRec[1]) : 0;
-      drivingMiles = manualMiles !== null ? manualMiles : straightLine * circuity;
-      usedManual = manualMiles !== null;
-    } else {
-      if (!destRec) {
-        showError("That destination ZIP wasn't found in the lookup table, so overhang mileage from Mooresville, NC can't be auto-estimated. Use a ZIP in the lookup table, or remove the overhang add-on.");
-        return null;
-      }
-      straightLine = haversineMiles(mileOrigin.lat, mileOrigin.lon, destRec[0], destRec[1]);
-      drivingMiles = straightLine * circuity;
-      usedManual = false;
-    }
-
-    var billedMiles = drivingMiles + OH_BUFFER;
-    var mileageCost = mileRate * billedMiles;
-    var total = basePrice + mileageCost + (outOfShop ? OH_OUT_OF_SHOP_FEE : 0);
-
-    if (priceKey === "fixed4") {
+    var note;
+    if (pricing.priceKey === "fixed4") {
       note = "4′ Fixed is a flat installed price on the sheet — no per-mile crew charge applies.";
     }
 
     return {
-      length: length,
-      label: label,
-      basePrice: basePrice,
-      mileRate: mileRate,
+      length: pricing.length,
+      label: pricing.label,
+      basePrice: pricing.basePrice,
+      mileRate: pricing.mileRate,
       mileOriginName: mileOrigin.name,
-      straightLine: straightLine,
+      straightLine: mileageResult.straightLine,
       circuity: circuity,
-      drivingMiles: drivingMiles,
+      drivingMiles: mileageResult.drivingMiles,
+      usedGoogle: mileageResult.usedGoogle,
       buffer: OH_BUFFER,
       billedMiles: billedMiles,
-      usedManual: usedManual,
+      usedManual: mileageResult.usedManual,
       mileageCost: mileageCost,
       outOfShop: outOfShop,
       total: total,
@@ -1184,12 +1306,14 @@
 
     html += '<div class="ledger">';
     html += ledgerRow("Base installed price", money(data.basePrice), false);
-    if (!data.usedManual) {
+    if (data.usedManual) {
+      html += ledgerRow("Manual mileage from " + data.mileOriginName, miles(data.drivingMiles), true);
+    } else if (data.usedGoogle) {
+      html += ledgerRow("Google Maps driving distance from " + data.mileOriginName, miles(data.drivingMiles), true);
+    } else {
       html += ledgerRow("Straight-line distance from " + data.mileOriginName, miles(data.straightLine), true);
       html += ledgerRow("Road-circuity multiplier", "&times; " + data.circuity.toFixed(2), true);
       html += ledgerRow("Estimated driving distance", miles(data.drivingMiles), true);
-    } else {
-      html += ledgerRow("Manual mileage from " + data.mileOriginName, miles(data.drivingMiles), true);
     }
     html += ledgerRow("Mile buffer", "+ " + miles(data.buffer), true);
     html += ledgerRow("Billed miles", miles(data.billedMiles), false);

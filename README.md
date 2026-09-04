@@ -5,8 +5,48 @@ for portable buildings from five dispatch locations, by destination ZIP
 code, building width, and building length — with an optional overhang
 add-on priced and totaled in the same quote.
 
-Open `index.html` directly in any browser — no build step, no server, no
-external services required at runtime.
+Open `index.html` directly in any browser — no build step, no server
+required. Mileage uses live Google Maps driving distance when an API key
+is configured (see "Google Maps setup" below); otherwise everything still
+works using a built-in straight-line distance estimate.
+
+## Google Maps setup (optional but recommended)
+
+By default mileage is estimated from ZIP-code coordinates (great-circle
+distance × a 1.25 road-circuity multiplier) — no external service, works
+everywhere. To use exact driving distance instead:
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) and
+   create (or select) a project.
+2. **APIs & Services → Library** → enable **Maps JavaScript API** and
+   **Distance Matrix API**.
+3. **APIs & Services → Credentials → Create Credentials → API key.**
+4. **Restrict the key** (required — this repo is public, so an
+   unrestricted key would be usable by anyone who finds it):
+   - Application restrictions → **HTTP referrers** → add your GitHub
+     Pages URL, e.g. `https://justinzook555-ux.github.io/*`
+   - API restrictions → restrict key to **Maps JavaScript API** and
+     **Distance Matrix API** only.
+5. **Billing → Budgets & Alerts** → set a low budget alert as a backstop
+   against runaway usage.
+6. Open `index.html`, find `var GOOGLE_MAPS_API_KEY = "";` near the top of
+   the `<script>` block, paste the key between the quotes, and push.
+
+Google gives roughly $200 of free usage every month, which covers about
+40,000 distance lookups before anything bills — a shipping calculator
+doing quotes is very unlikely to exceed that.
+
+**If the key is missing, invalid, over quota, or a lookup fails for any
+reason**, the calculator silently falls back to the straight-line
+estimate for that quote — it never blocks or errors out. The quote
+breakdown always shows which method was used ("Google Maps driving
+distance" vs. "Estimated driving distance").
+
+**Note on the Claude Artifact preview link**: the Artifact viewer's
+content security policy blocks scripts from `maps.googleapis.com`, so
+Google Maps mileage only works on the real hosted page (GitHub Pages) or
+the standalone file — the Artifact preview will always show the
+estimate, even with a key configured.
 
 ## Locations
 
@@ -73,19 +113,22 @@ falls below this, the minimum is billed instead and the $500 drop fee
 is still added on top as normal. Atglen no longer uses this mechanism;
 its short-haul floor is the flat $250 charge under 50 miles above.
 
-## Distance estimate
+## Distance calculation
 
-The page cannot call a live routing API at runtime (browser sandbox
-restrictions), so mileage is estimated from an embedded ZIP-code
-latitude/longitude table:
+Mileage resolves in this order, for both the shipping leg and an added
+overhang's leg:
 
-`estimated driving miles = straight-line distance × road-circuity multiplier`
+1. **Manual mileage** (Advanced), if entered — always wins.
+2. **Google Maps driving distance**, if an API key is configured (see
+   "Google Maps setup" above) and the destination ZIP resolved.
+3. **Straight-line estimate** from an embedded ZIP-code latitude/longitude
+   table, as a fallback: `estimated driving miles = straight-line distance
+   × road-circuity multiplier`. The circuity multiplier defaults to
+   **1.25** (a reasonable rural/interstate approximation) and is
+   adjustable under "Advanced".
 
-The circuity multiplier defaults to **1.25** (a reasonable rural/interstate
-approximation) and is adjustable per-quote under "Advanced". For an exact
-number, use the **manual mileage** field in Advanced to type in a distance
-looked up from a mapping tool — the location's mile buffer is still added on
-top of a manual entry.
+The quote breakdown always states which method was actually used for
+that quote.
 
 Long Island detection is fully automatic — the destination ZIP's county is
 checked against Nassau/Suffolk, NY — with no manual checkbox or override.
