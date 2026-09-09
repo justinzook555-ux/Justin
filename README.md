@@ -57,7 +57,7 @@ Width options once that shop is selected:
 - **Atglen, PA**: 6′, 8′, 10′, 12′-wide (no 14′)
 
 **Standard tier** (Greenwood SC, Clarkson KY, Powell WY, Mill Hall PA):
-- 10′/12′/14′-wide are a flat per-mile rate: $9/mile, $11/mile, $13/mile
+- 10′/12′/14′-wide are a flat per-mile rate: $10/mile, $12/mile, $14/mile
 - 6′/8′-wide are length-bracket priced, like Atglen — see the table below
   — but at **$2/mile more per bracket** than Atglen's 6′/8′ rates
 - +60 mile buffer added to the estimated distance
@@ -67,10 +67,10 @@ Width options once that shop is selected:
 
 | Building length | 6′ / 8′ wide |
 |---|---|
-| 12 ft and under | $5/mile |
-| 13–24 ft | $7/mile |
-| 25–40 ft | $8/mile |
-| 41 ft and over | $9/mile |
+| 12 ft and under | $6/mile |
+| 13–24 ft | $8/mile |
+| 25–40 ft | $9/mile |
+| 41 ft and over | $10/mile |
 
 **Atglen tier** — Atglen does not split loads; every shipment prices off
 the per-mile rate for its width and building-length bracket:
@@ -82,9 +82,8 @@ the per-mile rate for its width and building-length bracket:
 | 25–40 ft | $6/mile | $7/mile | $9/mile |
 | 41 ft and over | $7/mile | $8/mile | $11/mile |
 
-(All rates above are $1/mile lower than the prior version, applied
-uniformly across every width/bracket in both tiers and the overhang
-add-on — see "Rate history" below.)
+(Atglen's rates above are $1/mile lower than the original pricing —
+see "Rate history" below. Every other shop's rates are unchanged.)
 
 (10′ and 12′-wide use 14 ft, not 12 ft, as the first bracket's ceiling —
 see Assumptions below.)
@@ -189,10 +188,10 @@ Prices pulled from the "Shed Row Overhang Pricing" sheet (revised
 | Overhang | Base price | Per-mile add-on |
 |---|---|---|
 | 4′ Fixed | flat installed price | none |
-| 4′ Hinged | flat installed price | +$11/mile (crew) |
-| 8′ Overhang (7′ clearance) | installed, includes roof upgrades | +$13/mile (onsite labor) |
-| 10′ Overhang (7′ clearance) | installed, includes roof upgrades | +$13/mile (onsite labor) |
-| 12′ Overhang (7′ clearance) | installed, includes roof upgrades | +$13/mile (onsite labor) |
+| 4′ Hinged | flat installed price | +$12/mile (crew) |
+| 8′ Overhang (7′ clearance) | installed, includes roof upgrades | +$14/mile (onsite labor) |
+| 10′ Overhang (7′ clearance) | installed, includes roof upgrades | +$14/mile (onsite labor) |
+| 12′ Overhang (7′ clearance) | installed, includes roof upgrades | +$14/mile (onsite labor) |
 
 - **4′ Hinged is not offered at 50′ barn length and over** (N/A on the
   sheet) — the calculator blocks the quote and says to call the shop.
@@ -228,10 +227,10 @@ Greenwood, SC**:
 
 ## Rate history
 
-Every per-mile rate in the calculator — shipping (standard flat rates,
-standard 6′/8′ brackets, all four Atglen brackets) and the overhang
-add-on (4′ Hinged, 8′/10′/12′ overhang) — was reduced by a flat
-**$1/mile** across the board. Flat charges (drop fees, the Atglen
-under-50-mile $250 minimum, overhang base prices, the $500 out-of-shop
-fee, minimum mileage cost floors) and mile buffers were **not**
-changed — only rates expressed per mile.
+Every Atglen per-mile rate (all four length brackets, for 6′/8′/10′/12′
+wide) was reduced by a flat **$1/mile**. This applies to Atglen only —
+Greenwood SC, Clarkson KY, Powell WY, and Mill Hall PA's rates, and the
+overhang add-on's per-mile rates, are unchanged from their original
+values. Flat charges (drop fees, Atglen's under-50-mile $250 minimum,
+overhang base prices, the $500 out-of-shop fee, minimum mileage cost
+floors) and mile buffers were also not touched.

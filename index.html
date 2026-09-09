@@ -596,7 +596,7 @@
     { id: "millhall",  name: "Mill Hall, PA", zip: "17751", tier: "standard" }
   ];
 
-  var STANDARD_RATE = { 10: 9, 12: 11, 14: 13 };
+  var STANDARD_RATE = { 10: 10, 12: 12, 14: 14 };
   var STANDARD_WIDTHS = [6, 8, 10, 12, 14];
   var ATGLEN_WIDTHS = [6, 8, 10, 12];
   var NARROW_WIDTHS = [6, 8]; // bracket-priced at every shop, not flat like 10/12/14
@@ -631,7 +631,7 @@
     10: [[14, 4], [24, 6], [40, 7], [Infinity, 8]],
     12: [[14, 7], [24, 8], [40, 9], [Infinity, 11]]
   };
-  var STANDARD_NARROW_BRACKETS = [[12, 5], [24, 7], [40, 8], [Infinity, 9]];
+  var STANDARD_NARROW_BRACKETS = [[12, 6], [24, 8], [40, 9], [Infinity, 10]];
   var STANDARD_NARROW_RATE_BRACKETS = {
     6: STANDARD_NARROW_BRACKETS,
     8: STANDARD_NARROW_BRACKETS
@@ -1118,11 +1118,11 @@
         mileRate = 0;
       } else {
         priceKey = "hinged4";
-        mileRate = 11;
+        mileRate = 12;
       }
     } else {
       priceKey = "o" + ohSize;
-      mileRate = 13;
+      mileRate = 14;
     }
     label = OH_LABELS[priceKey];
 
