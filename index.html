@@ -596,7 +596,7 @@
     { id: "millhall",  name: "Mill Hall, PA", zip: "17751", tier: "standard" }
   ];
 
-  var STANDARD_RATE = { 10: 10, 12: 12, 14: 14 };
+  var STANDARD_RATE = { 10: 9, 12: 11, 14: 13 };
   var STANDARD_WIDTHS = [6, 8, 10, 12, 14];
   var ATGLEN_WIDTHS = [6, 8, 10, 12];
   var NARROW_WIDTHS = [6, 8]; // bracket-priced at every shop, not flat like 10/12/14
@@ -624,14 +624,14 @@
   // 6' and 8'-wide always share one rate table (both at Atglen and at the
   // other shops), so each is defined once and aliased to both widths
   // rather than duplicated — keeps them from silently drifting apart.
-  var ATGLEN_NARROW_BRACKETS = [[12, 4], [24, 6], [40, 7], [Infinity, 8]];
+  var ATGLEN_NARROW_BRACKETS = [[12, 3], [24, 5], [40, 6], [Infinity, 7]];
   var ATGLEN_RATE_BRACKETS = {
     6:  ATGLEN_NARROW_BRACKETS,
     8:  ATGLEN_NARROW_BRACKETS,
-    10: [[14, 5], [24, 7], [40, 8], [Infinity, 9]],
-    12: [[14, 8], [24, 9], [40, 10], [Infinity, 12]]
+    10: [[14, 4], [24, 6], [40, 7], [Infinity, 8]],
+    12: [[14, 7], [24, 8], [40, 9], [Infinity, 11]]
   };
-  var STANDARD_NARROW_BRACKETS = [[12, 6], [24, 8], [40, 9], [Infinity, 10]];
+  var STANDARD_NARROW_BRACKETS = [[12, 5], [24, 7], [40, 8], [Infinity, 9]];
   var STANDARD_NARROW_RATE_BRACKETS = {
     6: STANDARD_NARROW_BRACKETS,
     8: STANDARD_NARROW_BRACKETS
@@ -1118,11 +1118,11 @@
         mileRate = 0;
       } else {
         priceKey = "hinged4";
-        mileRate = 12;
+        mileRate = 11;
       }
     } else {
       priceKey = "o" + ohSize;
-      mileRate = 14;
+      mileRate = 13;
     }
     label = OH_LABELS[priceKey];
 
@@ -1158,6 +1158,7 @@
     return {
       length: pricing.length,
       label: pricing.label,
+      priceKey: pricing.priceKey,
       basePrice: pricing.basePrice,
       mileRate: pricing.mileRate,
       mileOriginName: mileOrigin.name,
@@ -1199,7 +1200,7 @@
     html += ledgerRow("Mile buffer", "+ " + miles(data.buffer), true);
     html += ledgerRow("Billed miles", miles(data.billedMiles), false);
     if (data.mileRate > 0) {
-      html += ledgerRow((data.mileRate === 12 ? "Crew mileage" : "Onsite-labor mileage") + " &mdash; " + money(data.mileRate) + " &times; " + miles(data.billedMiles), money(data.mileageCost), false);
+      html += ledgerRow((data.priceKey === "hinged4" ? "Crew mileage" : "Onsite-labor mileage") + " &mdash; " + money(data.mileRate) + " &times; " + miles(data.billedMiles), money(data.mileageCost), false);
     }
     if (data.outOfShop) {
       html += ledgerRow("Out-of-shop surcharge (Mooresville)", money(OH_OUT_OF_SHOP_FEE), true);
