@@ -521,7 +521,7 @@
         <div class="field">
           <label for="lengthFt">Building Length (ft)</label>
           <input type="number" id="lengthFt" min="0" step="1" placeholder="e.g. 28" />
-          <div class="hint" id="lengthHint">Required for Atglen (any width) and for 6&prime;/8&prime;-wide from any shop &mdash; the rate depends on the length bracket. Not used for 10&prime;/12&prime;/14&prime;-wide outside Atglen. If an overhang is added below, this same length also looks up its price (12&prime;&ndash;60&prime;, in 2&prime; steps).</div>
+          <div class="hint" id="lengthHint">Required for some width/shop combinations. If an overhang is added below, this same length is used for it too (12&prime;&ndash;60&prime;, in 2&prime; steps).</div>
         </div>
 
         <div class="field checkline">
@@ -537,20 +537,15 @@
             <button type="button" data-size="10">10&prime;</button>
             <button type="button" data-size="12">12&prime;</button>
           </div>
-          <div class="hint">Uses the Building Width above for 4&prime; Fixed vs. Hinged, and the Building Length above to look up the price (12&prime;&ndash;60&prime; barns, in 2&prime; steps). A 40 mi mileage buffer and each shop&rsquo;s own overhang rules apply automatically.</div>
+          <div class="hint">Uses the Building Width and Building Length entered above.</div>
         </div>
 
         <details class="advanced">
-          <summary>Advanced &mdash; mileage &amp; buffer overrides</summary>
+          <summary>Advanced</summary>
           <div class="field">
             <label for="manualMiles">Manual one-way mileage (optional)</label>
-            <input type="number" id="manualMiles" min="0" step="1" placeholder="Leave blank to auto-estimate from ZIP codes" />
-            <div class="hint">Overrides the routed / ZIP-based estimate below with an exact number, e.g. from a mapping tool. The location's mile buffer is still added on top. For an overhang shipped out of Greenwood, mileage is always looked up separately from Mooresville, NC and does not use this override.</div>
-          </div>
-          <div class="field">
-            <label for="circuity">Road-circuity multiplier</label>
-            <input type="number" id="circuity" min="1" step="0.01" value="1.25" />
-            <div class="hint">Only used as a fallback when live routing isn&rsquo;t available (no API key configured, or a lookup fails) &mdash; converts straight-line ZIP-to-ZIP distance into an estimated driving distance. 1.25 is a reasonable rural/interstate default.</div>
+            <input type="number" id="manualMiles" min="0" step="1" placeholder="Leave blank to auto-calculate" />
+            <div class="hint">Enter an exact distance if you have one, or if the destination ZIP isn&rsquo;t found.</div>
           </div>
         </details>
 
@@ -576,7 +571,7 @@
   </div>
 
   <footer class="foot">
-    Mileage uses live OpenRouteService driving distance when an API key is configured; otherwise it falls back to an estimate from ZIP-code coordinates (great-circle distance &times; road-circuity multiplier). Use the manual mileage field for an exact override either way. The same logic applies to an added overhang's mileage.
+    For internal use only.
   </footer>
 
 </div>
@@ -596,6 +591,7 @@
     { id: "millhall",  name: "Mill Hall, PA", zip: "17751", tier: "standard" }
   ];
 
+  var DEFAULT_CIRCUITY = 1.25;
   var STANDARD_RATE = { 10: 10, 12: 12, 14: 14 };
   var STANDARD_WIDTHS = [6, 8, 10, 12, 14];
   var ATGLEN_WIDTHS = [6, 8, 10, 12];
@@ -730,14 +726,6 @@
   function money(n) {
     return "$" + Math.round(n).toLocaleString("en-US");
   }
-  function rateMoney(n) {
-    var rounded = Math.round(n * 100) / 100;
-    var opts = (rounded % 1 !== 0) ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : {};
-    return "$" + rounded.toLocaleString("en-US", opts);
-  }
-  function miles(n) {
-    return n.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " mi";
-  }
 
   // ---- populate origin select ----
   var originSel = document.getElementById("origin");
@@ -777,8 +765,8 @@
     });
     var hint = document.getElementById("widthHint");
     hint.textContent = origin.tier === "atglen"
-      ? "Atglen ships 6′, 8′, 10′, and 12′-wide buildings — no 14′. Every width prices by length bracket (see below)."
-      : "This shop ships 6′, 8′, 10′, 12′, and 14′-wide buildings. 6′ and 8′ price by length bracket; 10′/12′/14′ are a flat per-mile rate.";
+      ? "Atglen ships 6′, 8′, 10′, and 12′-wide buildings."
+      : "This shop ships 6′, 8′, 10′, 12′, and 14′-wide buildings.";
   }
   originSel.addEventListener("change", renderWidthToggle);
   renderWidthToggle();
@@ -814,51 +802,16 @@
   function renderResults(data) {
     var host = document.getElementById("resultsHost");
 
-    var routeTagHtml = data.tierLabel
-      ? '<span class="route-tag' + (data.longIsland ? ' warn' : '') + '">' + data.tierLabel + '</span>'
-      : "";
-
     var html = '';
     html += '<div class="route-line">';
     html += '<div class="route-node"><div class="k">From</div><div class="v">' + data.originName + '</div></div>';
     html += '<div class="route-arrow">&#8594;</div>';
     html += '<div class="route-node"><div class="k">To</div><div class="v">' + data.destLabel + '</div></div>';
-    html += routeTagHtml;
-    html += '</div>';
-
-    html += '<div class="ledger">';
-    if (data.usedManual) {
-      html += ledgerRow("Manual mileage entered", miles(data.drivingMiles), false);
-    } else if (data.usedRouting) {
-      html += ledgerRow(ORS_PROVIDER_NAME + " driving distance", miles(data.drivingMiles), false);
-    } else {
-      html += ledgerRow("Straight-line distance", miles(data.straightLine), true);
-      html += ledgerRow("Road-circuity multiplier", "&times; " + data.circuity.toFixed(2), true);
-      html += ledgerRow("Estimated driving distance", miles(data.drivingMiles), false);
-    }
-    if (data.flatFeeApplied) {
-      html += ledgerRow("Flat minimum shipping charge (under 50 mi)", money(data.total), false);
-    } else {
-      if (data.buffer > 0) {
-        html += ledgerRow("Location buffer", "+ " + miles(data.buffer), true);
-      }
-      html += ledgerRow("Billed miles", miles(data.billedMiles), false);
-      html += ledgerRow("Rate for " + data.width + "′ wide", rateMoney(data.rate) + " / mile", false);
-      if (data.minApplied) {
-        html += ledgerRow("Minimum mileage cost applied", money(data.minMileageCost), true);
-      }
-      html += ledgerRow("Mileage cost", money(data.mileageCost), false);
-      html += ledgerRow("Drop fee" + (data.longIsland ? " (Long Island, NY)" : ""), money(data.dropFee), false);
-    }
     html += '</div>';
 
     html += '<div class="ledger">';
     html += '<div class="ledger-row total"><span class="label">Barn Total</span><span class="val">' + money(data.total) + '</span></div>';
     html += '</div>';
-
-    if (data.note) {
-      html += '<div class="note-strip">' + data.note + '</div>';
-    }
 
     if (data.overhang) {
       html += '<div class="addon-divider"><div class="eyebrow">Add-on</div><div class="title">Overhang</div></div>';
@@ -866,10 +819,6 @@
     }
 
     host.innerHTML = html;
-  }
-
-  function ledgerRow(label, val, sub) {
-    return '<div class="ledger-row' + (sub ? ' sub' : '') + '"><span class="label">' + label + '</span><span class="val">' + val + '</span></div>';
   }
 
   var calcBtnEl = document.getElementById("calcBtn");
@@ -886,7 +835,7 @@
     var lengthFt = parseFloat(document.getElementById("lengthFt").value);
     var manualMilesRaw = document.getElementById("manualMiles").value;
     var manualMiles = manualMilesRaw !== "" ? parseFloat(manualMilesRaw) : null;
-    var circuity = parseFloat(document.getElementById("circuity").value) || 1.25;
+    var circuity = DEFAULT_CIRCUITY;
 
     if (destZip.length !== 5) {
       showError("Enter a 5-digit destination ZIP code.");
@@ -1180,40 +1129,12 @@
     var html = "";
 
     html += '<div class="route-line" style="margin-top: 4px;">';
-    html += '<div class="route-node"><div class="k">Overhang Mileage From</div><div class="v">' + data.mileOriginName + '</div></div>';
-    html += '<div class="route-arrow">&#8226;</div>';
     html += '<div class="route-node"><div class="k">Overhang</div><div class="v">' + data.label + '</div></div>';
-    html += '<span class="route-tag' + (data.outOfShop ? ' warn' : '') + '">' + (data.outOfShop ? "Built out of Mooresville (+$" + OH_OUT_OF_SHOP_FEE + ")" : "Billed from shop") + '</span>';
-    html += '</div>';
-
-    html += '<div class="ledger">';
-    html += ledgerRow("Base installed price", money(data.basePrice), false);
-    if (data.usedManual) {
-      html += ledgerRow("Manual mileage from " + data.mileOriginName, miles(data.drivingMiles), true);
-    } else if (data.usedRouting) {
-      html += ledgerRow(ORS_PROVIDER_NAME + " driving distance from " + data.mileOriginName, miles(data.drivingMiles), true);
-    } else {
-      html += ledgerRow("Straight-line distance from " + data.mileOriginName, miles(data.straightLine), true);
-      html += ledgerRow("Road-circuity multiplier", "&times; " + data.circuity.toFixed(2), true);
-      html += ledgerRow("Estimated driving distance", miles(data.drivingMiles), true);
-    }
-    html += ledgerRow("Mile buffer", "+ " + miles(data.buffer), true);
-    html += ledgerRow("Billed miles", miles(data.billedMiles), false);
-    if (data.mileRate > 0) {
-      html += ledgerRow((data.priceKey === "hinged4" ? "Crew mileage" : "Onsite-labor mileage") + " &mdash; " + money(data.mileRate) + " &times; " + miles(data.billedMiles), money(data.mileageCost), false);
-    }
-    if (data.outOfShop) {
-      html += ledgerRow("Out-of-shop surcharge (Mooresville)", money(OH_OUT_OF_SHOP_FEE), true);
-    }
     html += '</div>';
 
     html += '<div class="ledger">';
     html += '<div class="ledger-row total"><span class="label">Overhang Total</span><span class="val">' + money(data.total) + '</span></div>';
     html += '</div>';
-
-    if (data.note) {
-      html += '<div class="note-strip">' + data.note + '</div>';
-    }
 
     return html;
   }

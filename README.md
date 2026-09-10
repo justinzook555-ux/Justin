@@ -5,6 +5,16 @@ for portable buildings from five dispatch locations, by destination ZIP
 code, building width, and building length — with an optional overhang
 add-on priced and totaled in the same quote.
 
+**Team-facing UI note**: the on-page results only show the final Barn
+Total / Overhang Total — no mileage figures, per-mile rates, buffers, or
+drop-fee line items are displayed, so a team member using the tool day to
+day can't see the underlying pricing logic. This README (and the source
+comments in `index.html`) remain the full internal reference for how
+everything is actually calculated. This is UI-only concealment, not
+security: anyone who views the page's source in a browser can still read
+the rate constants directly, since it's a fully client-side file with no
+backend hiding the logic.
+
 Open `index.html` directly in any browser — no build step, no server
 required. Mileage uses live OpenRouteService driving distance when an API
 key is configured (see "OpenRouteService setup" below); otherwise
@@ -117,12 +127,13 @@ overhang's leg:
    "OpenRouteService setup" above) and the destination ZIP resolved.
 3. **Straight-line estimate** from an embedded ZIP-code latitude/longitude
    table, as a fallback: `estimated driving miles = straight-line distance
-   × road-circuity multiplier`. The circuity multiplier defaults to
-   **1.25** (a reasonable rural/interstate approximation) and is
-   adjustable under "Advanced".
+   × road-circuity multiplier`. The circuity multiplier is fixed at
+   **1.25** in code (`DEFAULT_CIRCUITY`) — there's no UI control for it
+   anymore, per the team-facing concealment note above.
 
-The quote breakdown always states which method was actually used for
-that quote.
+The on-page quote no longer states which distance method was used (that
+was part of the removed breakdown) — internally the data is still there
+if you need to debug a quote; it's just not rendered.
 
 Long Island detection is fully automatic — the destination ZIP's county is
 checked against Nassau/Suffolk, NY — with no manual checkbox or override.
